@@ -61,7 +61,7 @@ init(globals(),locals())
 ### UI CODE ###
 
 root = ui.Root(
-    title="Fr Operating System V1.0.0 B1",
+    title="Fr Operating System V1.0.1 B2",
     bg=(0,0,0),
     res=size
 )
@@ -75,7 +75,7 @@ bar = ui.Titlebar(
 ).add(root,10)
 
 ## Wallpaper
-wallpaper = ui.Image(
+background = ui.Image(
     (0,0),
     'assets/bg.png',
     size[0],
@@ -117,7 +117,7 @@ def open_apps(app_):
     y = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
 
     w = ui.Window(
-        position = (10,y),
+        position = (10,y+round(size[1]//3*settings['scale'])),
         width = round(size[0]//4*settings['scale']),
         height = round(size[1]//3*settings['scale']),
         title = app_.name,
@@ -167,7 +167,13 @@ def open_apps(app_):
             hover_color=(60,60,60)
         ).add(w,1)
 
-    w.changed = True
+    ui.Animation(
+        component=w,
+        length=200,
+        startPos=w.pos,
+        endPos=(10,y),
+        easing = 'sin'
+    ).start()
 
 apps_menu = Application('start','Applications',open_apps,ui.nothing,'assets/fr_os.png').pin()
 
@@ -183,17 +189,18 @@ def load_apps():
 load_apps()
 
 
+
 def event(event):
     global size
     if event.type in [pygame.VIDEORESIZE,pygame.WINDOWMAXIMIZED]:
         size = root.disp.get_size()
-        wallpaper.width, wallpaper.height = size
-        wallpaper.update_image()
+        background.width, background.height = size
+        background.update_image()
         
         taskbar.setPos(0,size[1]-30)
         taskbar.width = size[1]
 
-root.addListener(event)
+root.addEventListener(event)
 
 while True:
     if not ui.update(): break

@@ -1,10 +1,12 @@
-import pygame
 from pygame._sdl2 import Window as _Window
-from typing import Callable
+from copy import copy, deepcopy
+from easing import get_easing
 from threading import Thread
+from typing import Callable
 import time as t
+import pygame
 pygame.init()
-pygame.threads.init(2)
+pygame.threads.init()
 
 clock = pygame.time.Clock()
 
@@ -36,7 +38,12 @@ a     = 0   # Counter used for testing
 def nothing(*args, **kwargs):
     """Does nothing"""
 
-class Text:
+### COMPONENTS ###
+
+# Dummy parent class, might move some functions here.
+class Component: ...
+
+class Text(Component):
     def __init__(
             self,
             position,
@@ -90,7 +97,7 @@ class Text:
         parent.addChild(self)
         return self
 
-class Button:
+class Button(Component):
     def __init__(
             self,
             position:tuple[int,int],
@@ -183,7 +190,7 @@ class Button:
         # CheckHovered every second frame (performance)
         self.checkHovered()
 
-class Checkbox:
+class Checkbox(Component):
     def __init__(
             self,
             position,
@@ -282,7 +289,7 @@ class Checkbox:
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
             self.toggle()
 
-class Textbox:
+class Textbox(Component):
     def __init__(
             self,
             position:tuple[int,int],
@@ -449,7 +456,7 @@ class Textbox:
         if event.type == pygame.MOUSEBUTTONDOWN:
             focus = self if self.hovered else None
 
-class Image:
+class Image(Component):
     def __init__(
             self,
             position,
@@ -510,7 +517,7 @@ class Image:
         parent.addChild(self)
         return self
 
-class Progressbar:
+class Progressbar(Component):
     def __init__(
             self,
             position,
@@ -634,7 +641,7 @@ class Progressbar:
         parent.addChild(self)
         return self
 
-class Slider:
+class Slider(Component):
     def __init__(
             self,
             position,
@@ -748,7 +755,7 @@ class Slider:
         elif event.type == pygame.MOUSEBUTTONUP:
             self.pressed = False
 
-class Area:
+class Area(Component):
     def __init__(
             self,
             position,
@@ -810,7 +817,7 @@ class Area:
         parent.addChild(self)
         return self
 
-class Line:
+class Line(Component):
     def __init__(
             self,
             from_:tuple[int,int],
@@ -869,7 +876,7 @@ class Line:
         parent.addChild(self)
         return self
 
-class Titlebar:
+class Titlebar(Component):
     def __init__(
             self,
             text:str,
@@ -976,7 +983,7 @@ class Titlebar:
             pos = root.window.position
             root.window.position = (pos[0] + x - self.dragPoint[0]), (pos[1] + y - self.dragPoint[1])
 
-class Window:
+class Window(Component):
     def __init__(
             self,
             position:tuple[int,int],
@@ -1106,11 +1113,22 @@ class Window:
                 border_bottom_right_radius=self.corner_radius
             )
         
+        if self.dragging:
+            pygame.draw.rect(
+                root.disp,
+                (100,100,100),
+                (x-self.dragPoint[0],y-self.dragPoint[1]-self.tb_height,self.width,self.height+self.tb_height),
+                2,
+                self.corner_radius
+            )
+        
         for child in self.children:
             if child.visible:
-                t = Thread(target=child.render)
-                t.start()
-                tasks['BEFORE_NEXT_FRAME'].add(t)
+                if use_threads:
+                    t = Thread(target=child.render)
+                    t.start()
+                    tasks['BEFORE_NEXT_FRAME'].add(t)
+                else: child.render()
         
         self.changed = False
 
@@ -1133,6 +1151,8 @@ class Window:
             self.dragging = False
             if self.nextPos:
                 self.setPos(*self.nextPos)
+                for child in self.children:
+                    child.setPos(child.x,child.y)
         
         for child in self.children:
             if hasattr(child,'event') and child.visible:
@@ -1154,23 +1174,13 @@ class Window:
                 else: break
 
             self.nextPos = (x-self.dragPoint[0]-px,y-self.dragPoint[1]-py)
-            
-            a = pygame.draw.rect(
-                root.disp,
-                (100,100,100),
-                (x-self.dragPoint[0],y-self.dragPoint[1]-self.tb_height,self.width,self.height+self.tb_height),
-                2,
-                self.corner_radius
-            )
-
-            for child in self.children:
-                child.setPos(child.x,child.y)
 
         for child in self.children:
             if hasattr(child,'tick'):
-                Thread(target=child.tick,args=[frame]).start()
+                if use_threads: Thread(target=child.tick,args=[frame]).start()
+                else: child.tick(frame)
 
-class Tab:
+class Tab(Component):
     def __init__(self):
         global tab, tabs
         self.children = []
@@ -1216,7 +1226,8 @@ class Tab:
         
         for child in self.children:
             if hasattr(child,'tick'):
-                Thread(target=child.tick,args=[frame]).start()
+                if use_threads: Thread(target=child.tick,args=[frame]).start()
+                else: child.tick(frame)
     
     def setPos(self, x, y):
         self.pos = x, y
@@ -1233,9 +1244,11 @@ class Tab:
     def render(self): 
         for child in self.children:
             if child.visible:
-                t = Thread(target=child.render)
-                t.start()
-                tasks['BEFORE_NEXT_FRAME'].add(t)
+                if use_threads:
+                    t = Thread(target=child.render)
+                    t.start()
+                    tasks['BEFORE_NEXT_FRAME'].add(t)
+                else: child.render()
         self.changed = False
         return self
 
@@ -1246,7 +1259,7 @@ class Tab:
         parent.addChild(self)
         return self
 
-class Frame:
+class Frame(Component):
     def __init__(
         self,
         position,
@@ -1308,14 +1321,17 @@ class Frame:
     def tick(self,frame):
         for child in self.children:
             if hasattr(child,'tick'):
-                Thread(target=child.tick,args=[frame]).start()
+                if use_threads: Thread(target=child.tick,args=[frame]).start()
+                else: child.tick(frame)
     
     def render(self):
         for child in self.children:
             if child.visible:
-                t = Thread(target=child.render)
-                t.start()
-                tasks['BEFORE_NEXT_FRAME'].add(t)
+                if use_threads:
+                    t = Thread(target=child.render)
+                    t.start()
+                    tasks['BEFORE_NEXT_FRAME'].add(t)
+                else: child.render()
         self.changed = False
         return self
 
@@ -1344,7 +1360,9 @@ class Root:
         self.setTitle(title)
         self.res = res
         self.children = []
-        self._customListeners = set()
+        self._customEventListeners = set()
+        self._customTickListeners = set()
+        self._customFrameListeners = set()
         
         # Style
         self.bgColor = bg
@@ -1402,20 +1420,27 @@ class Root:
         else: self.children.append(child)
 
     def tick(self,frame):
-        if frame % 8 == 0: self.update_all()
+        self.update_all()
         for child in self.children:
             if hasattr(child,'tick') and (child.visible or isinstance(child,Tab)):
-                Thread(target=child.tick,args=[frame]).start()
+                if use_threads: Thread(target=child.tick,args=[frame]).start()
+                else: child.tick(frame)
+        if self._customTickListeners:
+            for listener in self._customTickListeners:
+                listener(frame)
 
     def render(self):
         pygame.display.set_caption(f'{self.title} | FPS: {clock.get_fps()//1}')
         for child in self.children:
             if child.visible:
-                t = Thread(target=child.render)
-                t.start()
-                tasks['BEFORE_NEXT_FRAME'].add(t)
-
-        return self
+                if use_threads:
+                    t = Thread(target=child.render)
+                    t.start()
+                    tasks['BEFORE_NEXT_FRAME'].add(t)
+                else: child.render()
+        if self._customFrameListeners:
+            for listener in self._customFrameListeners:
+                listener()
 
     def remove(self,object):
         self.children.remove(object)
@@ -1430,9 +1455,12 @@ class Root:
             self.disp = pygame.display.set_mode(
                 self.res, flags=self.disp.get_flags()
             )
-            t = Thread(target=self.update_all)
-            t.start()
-            tasks['BEFORE_NEXT_FRAME'].add(t)
+            if use_threads:
+                t = Thread(target=self.update_all)
+                t.start()
+                tasks['BEFORE_NEXT_FRAME'].add(t)
+            else:
+                self.update_all()
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
             focus = None
@@ -1444,12 +1472,18 @@ class Root:
             if hasattr(child,'event') and child.visible:
                 child.event(event)
         
-        if self._customListeners:
-            for listener in self._customListeners:
+        if self._customEventListeners:
+            for listener in self._customEventListeners:
                 listener(event)
 
-    def addListener(self,listener):
-        self._customListeners.add(listener)
+    def addFrameListener(self,listener:Callable):
+        self._customFrameListeners.add(listener)
+
+    def addEventListener(self,listener:Callable):
+        self._customEventListeners.add(listener)
+
+    def addTickListener(self,listener:Callable):
+        self._customTickListeners.add(listener)
 
     def update_all(self):
         self.disp.fill(self.bgColor)
@@ -1461,18 +1495,26 @@ class Root:
 
         update(self)
 
+    def wait_for_frame(self):
+        global Frame
+        f = copy(frame)
+        while f == frame: ...
+
+
 def update():
     global frame, root
     try:
         frame += 1
-        if frame %2 == 0: Thread(target=root.tick,args=[frame]).start()
+        if frame %1 == 0:
+            if use_threads: Thread(target=root.tick,args=[frame]).start()
+            else: root.tick(frame)
         root.render()
         for event in pygame.event.get(usedEvents):
             if event.type == pygame.QUIT:
                 pygame.quit()
             root.event(event)
         
-        # Wait for rendering to complete
+        # Wait for tasks to complete
         for thread in tasks['BEFORE_NEXT_FRAME'].copy():
             thread.join()
             tasks['BEFORE_NEXT_FRAME'].remove(thread)
@@ -1492,7 +1534,62 @@ def update():
         if debug: raise e
         return
 
+### ANIMATIONS ###
+
+class Animation:
+    def __init__(
+            self,
+            component:Component,
+            length,
+            startPos,
+            endPos,
+            easing,
+            ease_in=True,
+            ease_out=True
+        ):
+        self.component = component
+        self.length = length
+        self.startPos = startPos
+        self.endPos = endPos
+        self.easing = easing
+        
+        self.easer = Easer(self.length,get_easing(easing,ease_in,ease_out))
+    
+    def start(self):
+        Thread(target=self.start_blocking).start()
+    
+    def start_blocking(self):
+        self.component.setPos(*self.startPos)
+        for i in self.easer:
+            try: i = next(i)
+            except StopIteration: break
+
+            x = self.startPos[0] + self.endPos[0] * i
+            y = self.startPos[1] + self.endPos[1] * i
+            self.component.setPos(round(x),round(y))
+            root.update_all()
+            root.wait_for_frame()
+
+class Easer:
+    def __init__(self,length:int,easing_function:Callable):
+        self.frame = -1
+        self.length = length
+        self.ease = easing_function
+    
+    def __len__(self):
+        return self.length
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        self.frame += 1
+        if self.frame >= self.length: return
+        yield self.ease(self.frame/self.length)
+
+
 debug = False
+use_threads = False
 
 def mainloop():
     while update() and running: ...
