@@ -1,12 +1,16 @@
 import engine as ui
-from os import chdir
+import os
 from classes import *
 
-try: chdir('src')
+try: os.chdir('src')
 except: ...
 
 pygame = ui.pygame
 
+# Settings
+settings:dict[str,str|int|float|bool] = {
+    "scale": 1
+}
 
 def update_taskbar():
     global taskbar_icons, taskbar_area, taskbar_items
@@ -15,46 +19,46 @@ def update_taskbar():
     taskbar_area.changed = True
     taskbar_area.render()
     
+    taskbar.height = round(30*settings['scale'])
+    
+    taskbar_area.height = taskbar.height
+    taskbar.setPos(0,round(size[1]-30*settings['scale']))
+    
     for i,app in enumerate(taskbar_items):
         ui.Button(
-            position=(i*30,0),
-            width=31,
-            height=31,
+            position=(round(i*30*settings['scale']),0),
+            width=round(31*settings['scale']),
+            height=round(31*settings['scale']),
             text = '',
             size = 0,
             action=app.launch,
             color=(35,35,35),
             hover_color=(35,35,35),
-            corner_radius=5
+            corner_radius=round(5*settings['scale'])
         ).add(taskbar_icons)
 
         if app.icon:
             ui.Image(
-                position=(i*30+3,0),
-                width=25,
-                height=25,
+                position=(round((i*30+3)*settings['scale']),1+settings['scale']*2),
+                width=25*settings['scale'],
+                height=25*settings['scale'],
                 image_path=app.icon
             ).add(taskbar_icons,2)
         else:
             ui.Text(
-                position=(i*30+10,-5),
+                position=(round((i*30+10)*settings['scale']),-5),
                 text='-',
-                size=50
+                size=50*settings['scale']
             ).add(taskbar_icons,2)
 
-
-
-
-
+# Apps, taskbar and start menu
 apps:set[Application] = []
 
 taskbar_items:list[Application] = []
-start_pinned:list[Application] = []
 
 init(globals(),locals())
 
 ### UI CODE ###
-
 
 root = ui.Root(
     title="Fr Operating System V1.0.0 B1",
@@ -62,43 +66,44 @@ root = ui.Root(
     res=size
 )
 
-root.show(True,extraFlag=pygame.NOFRAME)
+root.show(True,extraFlag=pygame.FULLSCREEN)
 
 ## Title bar
 bar = ui.Titlebar(
-    root.title
+    root.title,
+    border_radius=0
 ).add(root,10)
 
 ## Wallpaper
 wallpaper = ui.Image(
     (0,0),
+    'assets/bg.png',
     size[0],
-    size[1],
-    'assets/bg.png'
+    size[1]
 ).add(root,-5)
 
 ## Taskbar
 # Frame
 taskbar = ui.Frame(
-    (0,size[1]-30),
-    size[1],
-    30
+    position=(0,round(size[1]-30*settings['scale'])),
+    width=size[1],
+    height=30
 ).add(root,5)
 
 # Area
 taskbar_area = ui.Area(
-    (0,0),
-    size[0],
-    30,
-    (40,40,40),
+    position=(0,0),
+    width=size[0],
+    height=30,
+    color=(40,40,40),
     corner_radius=0
 ).add(taskbar)
 
 # Items
 taskbar_icons = ui.Frame(
-    (5,0),
-    size[0]-25,
-    30
+    position=(5,0),
+    width=size[0]-25,
+    height=30
 ).add(taskbar,1)
 
 START_ICON_WIDTH = 50
@@ -106,20 +111,22 @@ START_ICON_HEIGHT = 50
 
 START_ICON_PADDING = 7
 
-# Start menu app
-def open_start(app_):
-    y = size[1] - size[1]//3 - taskbar.height - 10
+# Apps menu
+def open_apps(app_):
+    update_taskbar()
+    y = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
+
     w = ui.Window(
-        (10,y),
-        width = size[0]//3,
-        height = size[1]//3,
+        position = (10,y),
+        width = round(size[0]//4*settings['scale']),
+        height = round(size[1]//3*settings['scale']),
         title = app_.name,
         on_quit=app_.quit
     ).add(root)
     app_.window = w
     
-    i = -1
-    for app in start_pinned:
+    i = -1 # Custom index so we can *not* increment it when an app isnt pinned
+    for app in apps:
         if app == app_: continue
         i += 1
 
@@ -162,9 +169,18 @@ def open_start(app_):
 
     w.changed = True
 
+apps_menu = Application('start','Applications',open_apps,ui.nothing,'assets/fr_os.png').pin()
 
-start_menu = Application('start','Applications',open_start,ui.nothing,'assets/fr_os.png').pin()
+# Load apps
 
+APPS_DIR = 'apps'
+
+def load_apps():
+    for app in os.listdir(APPS_DIR):
+        with open(f'{APPS_DIR}/{app}') as f: src = f.read()
+        exec(src,globals(),locals())
+
+load_apps()
 
 
 def event(event):

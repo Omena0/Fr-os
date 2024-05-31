@@ -453,9 +453,9 @@ class Image:
     def __init__(
             self,
             position,
-            width,
-            height,
-            image_path
+            image_path,
+            width=None,
+            height=None
         ):
         self.parent = None
 
@@ -490,8 +490,9 @@ class Image:
 
     def update_image(self):
         self.image = pygame.image.load(self.image_path)
+        if not (self.width and self.height): return
         self.image = pygame.transform.smoothscale(self.image,(self.width,self.height))
-    
+
     def render(self):
         if not self.changed: return
         root.disp.blit(self.image, (self.abs_x, self.abs_y))
@@ -874,7 +875,9 @@ class Titlebar:
             text:str,
             height:int = 25,
             color = (40,40,40),
-            border_radius:int = 5
+            border_radius:int = 5,
+            size = 25,
+            text_position = None
         ):
         self.text = text
         self.width = root.disp.get_width()
@@ -888,18 +891,22 @@ class Titlebar:
         self.abs_x = 0
         self.abs_y = 0
         
+        if text_position is None:
+            text_position = (5,height//2-size//3)
+        self.textPos = text_position
         self.dragPoint = (0,0)
         self.dragging = False
         
         # Style
+        self.size = size
         self.visible = True
         self.changed = True
         
         # Close button
         self.close = Button(
-            (root.disp.get_width()-27,3),
+            (root.disp.get_width()-25,0),
             25,
-            20,
+            25,
             'X',
             25,
             lambda: pygame.quit(),
@@ -925,9 +932,9 @@ class Titlebar:
         )
         
         # Text
-        font = pygame.font.SysFont('Roboto',30)
+        font = pygame.font.SysFont('Roboto',self.size)
         t = font.render(self.text,1,(255,255,255))
-        root.disp.blit(t,(5,3))
+        root.disp.blit(t,self.textPos)
         
         # Close button in __init__
         
@@ -1370,6 +1377,9 @@ class Root:
             self.res, flags=flags
         )
         self.window = _Window.from_display_module()
+        
+        self.disp.fill(self.bgColor)
+        
         return self
     
     def setPos(self, x, y):
@@ -1405,7 +1415,6 @@ class Root:
                 t.start()
                 tasks['BEFORE_NEXT_FRAME'].add(t)
 
-        self.changed = False
         return self
 
     def remove(self,object):
@@ -1443,6 +1452,7 @@ class Root:
         self._customListeners.add(listener)
 
     def update_all(self):
+        self.disp.fill(self.bgColor)
         def update(object):
             object.changed = True
             if hasattr(object,'children'):

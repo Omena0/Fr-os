@@ -2,7 +2,7 @@ import screeninfo
 from os import PathLike
 from typing import Callable
 
-# Will get overwritten by init()
+# Will get overwritten by init() (no errors)
 def update_taskbar(): ...
 start_pinned = []
 apps = []
