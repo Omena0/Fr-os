@@ -1,6 +1,6 @@
 import screeninfo
 from os import PathLike
-from typing import Callable
+from types import FunctionType
 
 # Will get overwritten by init() (no errors)
 def update_taskbar(): ...
@@ -12,7 +12,7 @@ def init(g,l):
     globals().update(l)
 
 class Application:
-    def __init__(self,id:str,name:str,onLaunch:Callable,onQuit:Callable,iconPath:PathLike=''):
+    def __init__(self,id:str,name:str,onLaunch:FunctionType,onQuit:FunctionType,iconPath:PathLike=''):
         self.id = id
         self.name = name
         self.onLaunch = onLaunch

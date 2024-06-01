@@ -2,7 +2,7 @@ from pygame._sdl2 import Window as _Window
 from copy import copy, deepcopy
 from easing import get_easing
 from threading import Thread
-from typing import Callable
+from types import FunctionType
 import time as t
 import pygame
 pygame.init()
@@ -105,7 +105,7 @@ class Button(Component):
             height:int,
             text:str,
             size:int,
-            action:Callable=nothing,
+            action:FunctionType=nothing,
             color=(200, 200, 200),
             hover_color=(150, 150, 150),
             font_color=(255, 255, 255),
@@ -201,7 +201,7 @@ class Checkbox(Component):
             check_color=(120,120,120),
             corner_radius=3,
             checked:bool=False,
-            action:Callable=None
+            action:FunctionType=None
     ):
         self.parent = None
         self.action = action
@@ -652,7 +652,7 @@ class Slider(Component):
             handle_radius=8,
             track_color=(200, 200, 200),
             track_height=4,
-            action:Callable=None
+            action:FunctionType=None
     ):
         self.parent = None
         self.hovered = False
@@ -995,7 +995,7 @@ class Window(Component):
             color=(50, 50, 50),
             bg_focused_color=(70, 70, 70),
             font='Roboto',
-            on_quit:Callable=nothing
+            on_quit:FunctionType=nothing
         ):
         self.parent = None
         self.children = []
@@ -1476,13 +1476,13 @@ class Root:
             for listener in self._customEventListeners:
                 listener(event)
 
-    def addFrameListener(self,listener:Callable):
+    def addFrameListener(self,listener:FunctionType):
         self._customFrameListeners.add(listener)
 
-    def addEventListener(self,listener:Callable):
+    def addEventListener(self,listener:FunctionType):
         self._customEventListeners.add(listener)
 
-    def addTickListener(self,listener:Callable):
+    def addTickListener(self,listener:FunctionType):
         self._customTickListeners.add(listener)
 
     def update_all(self):
@@ -1574,7 +1574,7 @@ class Animation:
             root.wait_for_frame()
 
 class Easer:
-    def __init__(self,length:int,easing_function:Callable):
+    def __init__(self,length:int,easing_function:FunctionType):
         self.frame = -1
         self.length = length
         self.ease = easing_function
