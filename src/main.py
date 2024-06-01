@@ -2,6 +2,8 @@ import engine as ui
 import os
 from classes import *
 
+size = size[0]//2, size[1]//2
+
 try: os.chdir('src')
 except: ...
 
@@ -66,7 +68,7 @@ root = ui.Root(
     res=size
 )
 
-root.show(True,extraFlag=pygame.FULLSCREEN)
+root.show(True)#,extraFlag=pygame.NOFRAME)
 
 ## Title bar
 bar = ui.Titlebar(
@@ -117,7 +119,7 @@ def open_apps(app_):
     y = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
 
     w = ui.Window(
-        position = (10,y+round(size[1]//3*settings['scale'])),
+        position = (10,y+round(size[1]//3*settings['scale'])+taskbar.height+10),
         width = round(size[0]//4*settings['scale']),
         height = round(size[1]//3*settings['scale']),
         title = app_.name,
@@ -125,7 +127,14 @@ def open_apps(app_):
     ).add(root)
     app_.window = w
     
-    i = -1 # Custom index so we can *not* increment it when an app isnt pinned
+    ui.Animation(
+        component=w,
+        length=50,
+        endPos=(10,y),
+        easing = 'sin'
+    ).start()
+    
+    i = -1
     for app in apps:
         if app == app_: continue
         i += 1
@@ -167,13 +176,7 @@ def open_apps(app_):
             hover_color=(60,60,60)
         ).add(w,1)
 
-    ui.Animation(
-        component=w,
-        length=200,
-        startPos=w.pos,
-        endPos=(10,y),
-        easing = 'sin'
-    ).start()
+    
 
 apps_menu = Application('start','Applications',open_apps,ui.nothing,'assets/fr_os.png').pin()
 

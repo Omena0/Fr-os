@@ -1505,7 +1505,7 @@ def update():
     global frame, root
     try:
         frame += 1
-        if frame %1 == 0:
+        if frame % 4 == 0:
             if use_threads: Thread(target=root.tick,args=[frame]).start()
             else: root.tick(frame)
         root.render()
@@ -1541,7 +1541,6 @@ class Animation:
             self,
             component:Component,
             length,
-            startPos,
             endPos,
             easing,
             ease_in=True,
@@ -1549,7 +1548,7 @@ class Animation:
         ):
         self.component = component
         self.length = length
-        self.startPos = startPos
+        self.startPos = copy(component.pos)
         self.endPos = endPos
         self.easing = easing
         
@@ -1559,15 +1558,19 @@ class Animation:
         Thread(target=self.start_blocking).start()
     
     def start_blocking(self):
-        self.component.setPos(*self.startPos)
+        print(self.startPos,self.endPos)
         for i in self.easer:
-            try: i = next(i)
+            try: i = next(i)+0.0001
             except StopIteration: break
 
-            x = self.startPos[0] + self.endPos[0] * i
-            y = self.startPos[1] + self.endPos[1] * i
+
+            x = abs(self.startPos[0] - abs(self.endPos[0] - self.startPos[0]) * i)
+
+            y = abs(self.startPos[1] - abs(self.endPos[1] - self.startPos[1]) * i)
+                
+            print(i,round(x),round(y))
             self.component.setPos(round(x),round(y))
-            root.update_all()
+            if not running: return
             root.wait_for_frame()
 
 class Easer:
@@ -1584,7 +1587,7 @@ class Easer:
     
     def __next__(self):
         self.frame += 1
-        if self.frame >= self.length: return
+        if self.frame > self.length: return
         yield self.ease(self.frame/self.length)
 
 
