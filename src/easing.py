@@ -138,7 +138,7 @@ def get_easing(method,ease_in=True,ease_out=True):
                 else: return easeInQuint
             else:
                 if ease_out: return easeOutQuint
-        case 'expo':
+        case 'exp':
             if ease_in:
                 if ease_out: return easeInOutExpo
                 else: return easeInExpo

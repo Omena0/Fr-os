@@ -1,7 +1,7 @@
 import engine as ui
 from classes import Application, size
 
-if not 'settings' in globals(): settings = {}
+if not 'settings' in globals(): settings = {'scale':1}
 
 def set_scale(x):
     global open_app, START_ICON_HEIGHT, START_ICON_WIDTH, START_ICON_PADDING
@@ -9,7 +9,7 @@ def set_scale(x):
         settings['scale'] = float(x)
     except Exception:
         settings['scale'] = 1
-        
+
     # Taskbar
     update_taskbar()
     

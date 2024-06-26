@@ -39,7 +39,7 @@ def update_taskbar():
             corner_radius=round(5*settings['scale'])
         ).add(taskbar_icons)
 
-        if app.icon:
+        if app.icon != '':
             ui.Image(
                 position=(round((i*30+3)*settings['scale']),1+settings['scale']*2),
                 width=25*settings['scale'],
@@ -116,23 +116,16 @@ START_ICON_PADDING = 7
 # Apps menu
 def open_apps(app_):
     update_taskbar()
-    y = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
+    y_ = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
 
     w = ui.Window(
-        position = (10,y+round(size[1]//3*settings['scale'])+taskbar.height+10),
+        position = (10,y_+round(size[1]//3*settings['scale'])+taskbar.height+10),
         width = round(size[0]//4*settings['scale']),
         height = round(size[1]//3*settings['scale']),
         title = app_.name,
         on_quit=app_.quit
-    ).add(root)
+    ).add(root,999)
     app_.window = w
-    
-    ui.Animation(
-        component=w,
-        length=50,
-        endPos=(10,y),
-        easing = 'sin'
-    ).start()
     
     i = -1
     for app in apps:
@@ -157,12 +150,19 @@ def open_apps(app_):
         
         
         # Icon
-        ui.Image(
-            position=(x,y),
-            width=START_ICON_WIDTH,
-            height=START_ICON_HEIGHT,
-            image_path=app.icon
-        ).add(w,1)
+        if app.icon:
+            ui.Image(
+                position=(x,y),
+                width=START_ICON_WIDTH,
+                height=START_ICON_HEIGHT,
+                image_path=app.icon
+            ).add(w,1)
+        else:
+            ui.Text(
+                position=(x+START_ICON_WIDTH//4,y-START_ICON_HEIGHT//4),
+                text = '-',
+                size = START_ICON_WIDTH*2
+            ).add(w,2)
         
         # Button
         ui.Button(
@@ -176,9 +176,17 @@ def open_apps(app_):
             hover_color=(60,60,60)
         ).add(w,1)
 
+    ui.Animation(
+        component=w,
+        length=40,
+        endPos=(10,y_),
+        easing = 'exp',
+        ease_in = False
+    ).start()
     
 
 apps_menu = Application('start','Applications',open_apps,ui.nothing,'assets/fr_os.png').pin()
+
 
 # Load apps
 
@@ -191,6 +199,8 @@ def load_apps():
 
 load_apps()
 
+with ui.LayoutManager(10,10,100,100):
+    ui.Text((0,0),'Hello World!',20).add(root)
 
 
 def event(event):
@@ -200,10 +210,12 @@ def event(event):
         background.width, background.height = size
         background.update_image()
         
+        taskbar_area.width = size[0]
         taskbar.setPos(0,size[1]-30)
-        taskbar.width = size[1]
 
 root.addEventListener(event)
 
 while True:
     if not ui.update(): break
+
+ui.tasks['BEFORE_NEXT_FRAME'] = set()

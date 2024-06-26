@@ -183,11 +183,14 @@ class Button(Component):
         return self
 
     def event(self, event):
+        if event.type == pygame.MOUSEBUTTONUP and self.hovered:
+            event.handled = True
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
+            event.handled = True
             self.action()
 
     def tick(self,frame):
-        # CheckHovered every second frame (performance)
+        # CheckHovered every tick (performance)
         self.checkHovered()
 
 class Checkbox(Component):
@@ -287,6 +290,7 @@ class Checkbox(Component):
 
     def event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
+            event.handled = True
             self.toggle()
 
 class Textbox(Component):
@@ -431,26 +435,26 @@ class Textbox(Component):
         global focus
 
         # Text input
-        if event.type == pygame.KEYDOWN:
-            if focus == self:
-                if event.key == pygame.K_BACKSPACE:
-                    self.pressed = 'BACKSPACE'
-                    if pygame.key.get_mods() & pygame.KMOD_CTRL:
-                        words = self.text.split()
-                        self.text = ' '.join(words[:-1]) if words else ''
-                    else:
-                        self.text = self.text[:-1]
+        if event.type == pygame.KEYDOWN and focus == self:
+            event.handled = True
+            if event.key == pygame.K_BACKSPACE:
+                self.pressed = 'BACKSPACE'
+                if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    words = self.text.split()
+                    self.text = ' '.join(words[:-1]) if words else ''
                 else:
-                    self.text += event.unicode
-                    self.pressed = event.unicode
-                if self.action:
-                    self.action(self.text)
+                    self.text = self.text[:-1]
+            else:
+                self.text += event.unicode
+                self.pressed = event.unicode
+            if self.action:
+                self.action(self.text)
 
-        elif event.type == pygame.KEYUP:
-            if focus == self:
-                self.pressed = ''
-                self.repeating = False
-                self.repeat_timer = 0
+        elif event.type == pygame.KEYUP and focus == self:
+            event.handled = True
+            self.pressed = ''
+            self.repeating = False
+            self.repeat_timer = 0
 
         # Set focus
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -750,9 +754,11 @@ class Slider(Component):
     def event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.hovered:
+                event.handled = True
                 self.pressed = True
 
         elif event.type == pygame.MOUSEBUTTONUP:
+            event.handled = True
             self.pressed = False
 
 class Area(Component):
@@ -973,11 +979,10 @@ class Titlebar(Component):
         
         elif event.type in (pygame.VIDEORESIZE,pygame.WINDOWMAXIMIZED):
             self.width = root.disp.get_width()
-            print(self.width)
             self.close.setPos(self.width-27,self.close.y)
 
     def tick(self,frame):
-        # CheckHovered every second frame (performance)
+        # CheckHovered every tick (performance)
         self.checkHovered()
         if pygame.mouse.get_pressed()[0] and self.dragging:
             pos = root.window.position
@@ -1027,6 +1032,7 @@ class Window(Component):
         # Rendering
         self.layer = 0
         self.visible = True
+        self.quit_ = False
         
         # Close button
         self.close = Button(
@@ -1042,8 +1048,10 @@ class Window(Component):
         ).add(self,self.layer)
 
     def quit(self):
-        self.onQuit()
         self.parent.children.remove(self)
+        root.update_all()
+        self.quit_ = True
+        self.onQuit()
     
     def setPos(self, x, y):
         self.pos = x, y
@@ -1113,7 +1121,8 @@ class Window(Component):
                 border_bottom_right_radius=self.corner_radius
             )
         
-        if self.dragging:
+        # Dragging rectangle
+        if self.dragging and not drag_high_quality:
             pygame.draw.rect(
                 root.disp,
                 (100,100,100),
@@ -1123,7 +1132,7 @@ class Window(Component):
             )
         
         for child in self.children:
-            if child.visible:
+            if child.visible and child.changed:
                 if use_threads:
                     t = Thread(target=child.render)
                     t.start()
@@ -1154,12 +1163,14 @@ class Window(Component):
                 for child in self.children:
                     child.setPos(child.x,child.y)
         
+        event.handled = False
         for child in self.children:
+            if event.handled: break
             if hasattr(child,'event') and child.visible:
                 child.event(event)
 
     def tick(self,frame):
-        # CheckHovered every second frame (performance)
+        # CheckHovered every tick (performance)
         self.checkHovered()
         
         if self.dragging:
@@ -1174,6 +1185,7 @@ class Window(Component):
                 else: break
 
             self.nextPos = (x-self.dragPoint[0]-px,y-self.dragPoint[1]-py)
+            if drag_high_quality: self.setPos(*self.nextPos)
 
         for child in self.children:
             if hasattr(child,'tick'):
@@ -1201,7 +1213,9 @@ class Tab(Component):
         self.layer = 100
 
     def event(self, event):
+        event.handled = False
         for child in self.children:
+            if event.handled: break
             if hasattr(child,'event') and child.visible:
                 child.event(event)
 
@@ -1297,7 +1311,9 @@ class Frame(Component):
         return self
 
     def event(self, event):
+        event.handled = False
         for child in self.children:
+            if event.handled: break
             if hasattr(child,'event') and child.visible:
                 child.event(event)
 
@@ -1326,7 +1342,7 @@ class Frame(Component):
     
     def render(self):
         for child in self.children:
-            if child.visible:
+            if child.visible and child.changed:
                 if use_threads:
                     t = Thread(target=child.render)
                     t.start()
@@ -1389,7 +1405,7 @@ class Root:
         tab = tabId
 
     def show(self, resizable=True, extraFlag=0):
-        flags = pygame.SCALED | (pygame.RESIZABLE if resizable else 0) | extraFlag
+        flags = pygame.SCALED | (pygame.RESIZABLE if resizable else 0) | pygame.DOUBLEBUF | extraFlag
         
         self.disp = pygame.display.set_mode(
             self.res, flags=flags
@@ -1468,7 +1484,10 @@ class Root:
         elif event.type == pygame.MOUSEMOTION: # Mouse move
             x,y = event.dict['pos']
 
+        event.handled = False
         for child in self.children:
+            if debug_events: print(f'Child name: {child.__name__}\nEvent: {event}\nHandled: {event.handled}\n')
+            if event.handled: break
             if hasattr(child,'event') and child.visible:
                 child.event(event)
         
@@ -1486,7 +1505,6 @@ class Root:
         self._customTickListeners.add(listener)
 
     def update_all(self):
-        self.disp.fill(self.bgColor)
         def update(object):
             object.changed = True
             if hasattr(object,'children'):
@@ -1496,9 +1514,9 @@ class Root:
         update(self)
 
     def wait_for_frame(self):
-        global Frame
+        global frame
         f = copy(frame)
-        while f == frame: ...
+        while f == frame: t.sleep(0.001)
 
 
 def update():
@@ -1506,21 +1524,26 @@ def update():
     try:
         frame += 1
         if frame % 4 == 0:
-            if use_threads: Thread(target=root.tick,args=[frame]).start()
-            else: root.tick(frame)
+            if use_threads:
+                _thread = Thread(target=root.tick,args=[frame])
+                tasks['BEFORE_NEXT_FRAME'].add(_thread)
+                _thread.start()
+
+        else: root.tick(frame)
         root.render()
         for event in pygame.event.get(usedEvents):
             if event.type == pygame.QUIT:
                 pygame.quit()
             root.event(event)
         
+        clock.tick()
         # Wait for tasks to complete
+        
         for thread in tasks['BEFORE_NEXT_FRAME'].copy():
-            thread.join()
             tasks['BEFORE_NEXT_FRAME'].remove(thread)
+            thread.join()
         
         pygame.display.flip()
-        clock.tick()
         return root
     except pygame.error as e:
         if e == 'display surface quit': return
@@ -1568,10 +1591,9 @@ class Animation:
 
             y = abs(self.startPos[1] - abs(self.endPos[1] - self.startPos[1]) * i)
                 
-            print(i,round(x),round(y))
             self.component.setPos(round(x),round(y))
-            if not running: return
-            root.wait_for_frame()
+            if not running: break
+            t.sleep(1/120)
 
 class Easer:
     def __init__(self,length:int,easing_function:FunctionType):
@@ -1590,14 +1612,42 @@ class Easer:
         if self.frame > self.length: return
         yield self.ease(self.frame/self.length)
 
+### LAYOUT MANAGER ###
 
+
+
+class LayoutManager():
+    def __init__(self,x,y,width,height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def __enter__(self):
+        global root
+        self.old_root = root
+        root = Frame((self.x,self.y),self.width,self.height)
+        self.frame = root
+
+    def __exit__(self, *_):
+        global root
+        root = self.old_root
+
+
+# Raise any exception caught
 debug = False
+
+# Display event debug information
+debug_events = False
+
+# Offload all individual component rendering and ticks to their own threads
 use_threads = False
 
+# Makes the dragging thing a rectangle kinda like in windows with the setting off
+drag_high_quality = True
+
 def mainloop():
-    while update() and running: ...
-
-
+    while update() and running: Ellipsis
 
 if __name__ == "__main__":
-    import test
+    import main
