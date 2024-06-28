@@ -1,8 +1,8 @@
 from pygame._sdl2 import Window as _Window
-from copy import copy, deepcopy
+from types import FunctionType
 from easing import get_easing
 from threading import Thread
-from types import FunctionType
+from copy import copy
 import time as t
 import pygame
 pygame.init()
@@ -15,10 +15,6 @@ clock = pygame.time.Clock()
 running = True
 root   = None
 focus  = None
-
-tasks = {
-    "BEFORE_NEXT_FRAME": set()
-}
 
 # Used events
 usedEvents = [pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP,pygame.KEYDOWN,pygame.KEYUP,pygame.MOUSEMOTION,pygame.QUIT,pygame.VIDEORESIZE,pygame.WINDOWMAXIMIZED]
@@ -999,8 +995,8 @@ class Window(Component):
             title:str,
             tb_height:int=25,
             corner_radius=5,
-            color=(50, 50, 50),
-            bg_focused_color=(70, 70, 70),
+            color=(45, 45, 45),
+            bg_focused_color=(50, 50, 50),
             font='Roboto',
             on_quit:FunctionType=nothing
         ):
@@ -1135,11 +1131,7 @@ class Window(Component):
         
         for child in self.children:
             if child.visible and child.changed:
-                if use_threads:
-                    t = Thread(target=child.render)
-                    t.start()
-                    tasks['BEFORE_NEXT_FRAME'].add(t)
-                else: child.render()
+                child.render()
         
         self.changed = False
 
@@ -1152,7 +1144,14 @@ class Window(Component):
 
     def event(self, event):
         global focus
+
+        for child in self.children:
+            if event.handled: break
+            if hasattr(child,'event') and child.visible:
+                child.event(event)
+
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
+            event.handled = True
             self.dragPoint = event.dict['pos'][0]-self.abs_x, event.dict['pos'][1]-self.abs_y
             if self.dragPoint[1] < 0:
                 self.dragging = True
@@ -1164,16 +1163,13 @@ class Window(Component):
                 self.setPos(*self.nextPos)
                 for child in self.children:
                     child.setPos(child.x,child.y)
-        
-        event.handled = False
-        for child in self.children:
-            if event.handled: break
-            if hasattr(child,'event') and child.visible:
-                child.event(event)
 
     def tick(self,frame):
         # CheckHovered every tick (performance)
         self.checkHovered()
+        if focus == self:
+            self.parent.children.remove(self)
+            self.parent.children.append(self)
         
         if self.dragging:
             p = self.parent
@@ -1191,8 +1187,10 @@ class Window(Component):
 
         for child in self.children:
             if hasattr(child,'tick'):
-                if use_threads: Thread(target=child.tick,args=[frame]).start()
-                else: child.tick(frame)
+                child.tick(frame)
+
+    def remove(self,child):
+        self.children.remove(object)
 
 class Tab(Component):
     def __init__(self):
@@ -1242,8 +1240,7 @@ class Tab(Component):
         
         for child in self.children:
             if hasattr(child,'tick'):
-                if use_threads: Thread(target=child.tick,args=[frame]).start()
-                else: child.tick(frame)
+                child.tick(frame)
     
     def setPos(self, x, y):
         self.pos = x, y
@@ -1260,11 +1257,7 @@ class Tab(Component):
     def render(self): 
         for child in self.children:
             if child.visible:
-                if use_threads:
-                    t = Thread(target=child.render)
-                    t.start()
-                    tasks['BEFORE_NEXT_FRAME'].add(t)
-                else: child.render()
+                child.render()
         self.changed = False
         return self
 
@@ -1339,17 +1332,12 @@ class Frame(Component):
     def tick(self,frame):
         for child in self.children:
             if hasattr(child,'tick'):
-                if use_threads: Thread(target=child.tick,args=[frame]).start()
-                else: child.tick(frame)
+                child.tick(frame)
     
     def render(self):
         for child in self.children:
             if child.visible and child.changed:
-                if use_threads:
-                    t = Thread(target=child.render)
-                    t.start()
-                    tasks['BEFORE_NEXT_FRAME'].add(t)
-                else: child.render()
+                child.render()
         self.changed = False
         return self
 
@@ -1362,7 +1350,6 @@ class Frame(Component):
 
     def remove(self, object):
         self.children.remove(object)
-        del object
 
 class Root:
     def __init__(
@@ -1441,8 +1428,7 @@ class Root:
         self.update_all()
         for child in self.children:
             if hasattr(child,'tick') and (child.visible or isinstance(child,Tab)):
-                if use_threads: Thread(target=child.tick,args=[frame]).start()
-                else: child.tick(frame)
+                child.tick(frame)
         if self._customTickListeners:
             for listener in self._customTickListeners:
                 listener(frame)
@@ -1451,11 +1437,7 @@ class Root:
         pygame.display.set_caption(f'{self.title} | FPS: {clock.get_fps()//1}')
         for child in self.children:
             if child.visible:
-                if use_threads:
-                    t = Thread(target=child.render)
-                    t.start()
-                    tasks['BEFORE_NEXT_FRAME'].add(t)
-                else: child.render()
+                child.render()
         if self._customFrameListeners:
             for listener in self._customFrameListeners:
                 listener()
@@ -1473,12 +1455,7 @@ class Root:
             self.disp = pygame.display.set_mode(
                 self.res, flags=self.disp.get_flags()
             )
-            if use_threads:
-                t = Thread(target=self.update_all)
-                t.start()
-                tasks['BEFORE_NEXT_FRAME'].add(t)
-            else:
-                self.update_all()
+            self.update_all()
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
             focus = None
@@ -1507,14 +1484,18 @@ class Root:
         self._customTickListeners.add(listener)
 
     def update_all(self):
-        self.disp.fill(self.bgColor)
+        global count
+        count = 0
         def update(object):
+            global count
             object.changed = True
             if hasattr(object,'children'):
                 for child in object.children:
                     update(child)
+                    count += 1
 
         update(self)
+        print(count)
 
     def wait_for_frame(self):
         global frame
@@ -1526,13 +1507,8 @@ def update():
     global frame, root
     try:
         frame += 1
-        if frame % 4 == 0:
-            if use_threads:
-                _thread = Thread(target=root.tick,args=[frame])
-                tasks['BEFORE_NEXT_FRAME'].add(_thread)
-                _thread.start()
-
-        else: root.tick(frame)
+        if frame % 5 == 0:
+            root.tick(frame)
         root.render()
         for event in pygame.event.get(usedEvents):
             if event.type == pygame.QUIT:
@@ -1540,11 +1516,6 @@ def update():
             root.event(event)
         
         clock.tick()
-        # Wait for tasks to complete
-        
-        for thread in tasks['BEFORE_NEXT_FRAME'].copy():
-            tasks['BEFORE_NEXT_FRAME'].remove(thread)
-            thread.join()
         
         pygame.display.flip()
         return root
@@ -1694,11 +1665,8 @@ debug = True
 # Display event debug information
 debug_events = False
 
-# Offload all individual component rendering and ticks to their own threads
-use_threads = False
-
 # Makes the dragging thing a rectangle kinda like in windows with the setting off
-drag_high_quality = True
+drag_high_quality = False
 
 def mainloop():
     while update() and running: Ellipsis

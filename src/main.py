@@ -116,7 +116,7 @@ START_ICON_HEIGHT = 50
 START_ICON_PADDING = 7
 
 # Apps menu
-def open_apps(app_):
+def open_apps_menu(app_):
     update_taskbar()
     y_ = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
 
@@ -159,23 +159,17 @@ def open_apps(app_):
                 height=START_ICON_HEIGHT,
                 image_path=app.icon
             ).add(w,1)
-        else:
-            ui.Text(
-                position=(x+START_ICON_WIDTH//4,y-START_ICON_HEIGHT//4),
-                text = '-',
-                size = START_ICON_WIDTH*2
-            ).add(w,2)
         
         # Button
         ui.Button(
             position=(x-2,y-2),
             width=START_ICON_WIDTH+2,
             height=START_ICON_HEIGHT+2,
-            text='',
-            size = 0,
+            text='' if app.icon else '-',
+            size = START_ICON_WIDTH*2,
             action=app.launch,
-            color=(60,60,60),
-            hover_color=(60,60,60)
+            color=(65,65,65),
+            hover_color=(70,70,70)
         ).add(w,1)
 
     ui.Animation(
@@ -187,7 +181,7 @@ def open_apps(app_):
     ).start()
     
 
-apps_menu = Application('start','Applications',open_apps,ui.nothing,'assets/fr_os.png').pin()
+apps_menu = Application('applications','Applications',open_apps_menu,ui.nothing,'assets/fr_os.png').pin()
 
 
 # Load apps

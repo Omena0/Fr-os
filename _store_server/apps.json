@@ -1,0 +1,26 @@
+{
+    "calc": {   
+        "name": "Calculator",
+        "description": "A simple calculator",
+        "category": "Utility"
+    },
+    "settings": {
+        "id": "settings",
+        "name": "Settings",
+        "description": "Change settings",
+        "category": "Utility"
+    },
+    "terminal": {
+        "id": "terminal",
+        "name": "Terminal",
+        "description": "Terminal.",
+        "category": "Utility"
+    },
+
+    "store": {
+        "id": "store",
+        "name": "Fr-store",
+        "description": "This app frfr",
+        "category": "Internet"
+    }
+}
