@@ -50,6 +50,7 @@ class Text(Component):
             text,
             size,
             color=(255, 255, 255),
+            bg_color = None,
             font='Roboto'
         ):
         
@@ -59,6 +60,7 @@ class Text(Component):
         self.text:str = text
         self.size = size
         self.color = color
+        self.bg_color = bg_color
         self.font = font
         
         # Position
@@ -86,7 +88,7 @@ class Text(Component):
     def render(self):
         if not self.changed: return
         font = pygame.font.SysFont(self.font, self.size)
-        text = font.render(self.text, 1, self.color)
+        text = font.render(self.text, 1, self.color,self.bg_color)
         root.disp.blit(text, (self.abs_x, self.abs_y))
         self.changed = False
 
@@ -1505,6 +1507,7 @@ class Root:
         self._customTickListeners.add(listener)
 
     def update_all(self):
+        self.disp.fill(self.bgColor)
         def update(object):
             object.changed = True
             if hasattr(object,'children'):
@@ -1617,25 +1620,76 @@ class Easer:
 
 
 class LayoutManager():
-    def __init__(self,x,y,width,height):
+    def __init__(self,x,y,width,height,padding):
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
+        self.width = width - padding
+        self.height = height - padding
+        self.padding = padding
+        self.setPos(x+padding,y+padding)
+        self.screen_width = root.width
+        self.screen_height = root.height
+        root.addEventListener(self.event)
+
+    def setPos(self,x,y):
+        self.x = x
+        self.y = y
+        if hasattr(self,'frame'): self.frame.setPos(x,y)
+
+    def add(self,parent,layer=1):
+        self.parent = parent
+        self.layer  = layer
+        return self
 
     def __enter__(self):
         global root
         self.old_root = root
-        root = Frame((self.x,self.y),self.width,self.height)
+        root = Frame((self.x,self.y),self.width,self.height).add(self.parent,self.layer)
+        root.addEventListener = self.old_root.addEventListener
         self.frame = root
 
     def __exit__(self, *_):
         global root
         root = self.old_root
+        self.update()
+    
+    def event(self,event):
+        if event.type == pygame.VIDEORESIZE:
+            self.width += event.dict['w'] - self.screen_width
+            self.height += event.dict['h'] - self.screen_height
+            self.frame.width = abs(self.width)
+            self.frame.height = abs(self.height)
+
+            self.screen_width = event.dict['w']
+            self.screen_height = event.dict['h']
+            self.update()
+            root.update_all()
+
+    def update(self):
+        totalX = 0
+        totalY = [0 for _ in range(self.screen_height)]
+        for i,child in enumerate(self.frame.children):
+            if not hasattr(child,'orig_x'): child.orig_x = child.x
+            if not hasattr(child,'orig_y'): child.orig_y = child.y
+            totalX += child.orig_x
+            totalY[i] += child.orig_y
+        
+        x = 0
+        y = 0
+        for i,child in enumerate(self.frame.children):
+
+            child.width  = abs(self.frame.width /(totalX   /(child.orig_x))-self.padding)
+            child.height = abs(self.frame.height/(totalY[i]/(child.orig_y))-self.padding)
+
+            print(f'{str(child):50}: {round(x):4}, {round(y):4} - {round(child.width):4}, {round(child.height):4}')
+
+            child.setPos(abs(round(x)),abs(round(y)))
+            x += child.width + self.padding
+        
 
 
 # Raise any exception caught
-debug = False
+debug = True
 
 # Display event debug information
 debug_events = False

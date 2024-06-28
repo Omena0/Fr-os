@@ -9,6 +9,7 @@ except: ...
 
 pygame = ui.pygame
 
+
 # Settings
 settings:dict[str,str|int|float|bool] = {
     "scale": 1
@@ -64,11 +65,12 @@ init(globals(),locals())
 
 root = ui.Root(
     title="Fr Operating System V1.0.1 B2",
-    bg=(0,0,0),
+    bg=(100,100,100),
     res=size
 )
 
 root.show(True)#,extraFlag=pygame.NOFRAME)
+
 
 ## Title bar
 bar = ui.Titlebar(
@@ -198,9 +200,6 @@ def load_apps():
         exec(src,globals(),locals())
 
 load_apps()
-
-with ui.LayoutManager(10,10,100,100):
-    ui.Text((0,0),'Hello World!',20).add(root)
 
 
 def event(event):
