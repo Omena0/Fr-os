@@ -191,7 +191,8 @@ APPS_DIR = 'apps'
 def load_apps():
     for app in os.listdir(APPS_DIR):
         with open(f'{APPS_DIR}/{app}') as f: src = f.read()
-        exec(src,globals(),locals())
+        try: exec(src,globals(),locals())
+        except Exception as e: print(e)
 
 load_apps()
 
