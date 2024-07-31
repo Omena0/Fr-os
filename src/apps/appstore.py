@@ -1,44 +1,49 @@
 from classes import Application, size
+from threading import Thread
 import engine as ui
 import socket
 import json
 
 addr = ('127.0.0.1', 6969)
 
-
-s = socket.socket()
-
-s.connect(addr)
-
-s.send(b'GET_APPS')
-
-all_app_ids = s.recv(1024).decode().split(',')
 categories = ['All']
 store_all_apps = []
 store_apps = {}
-
-for app_id in all_app_ids:
-    s.send(f'GET_APP|{app_id}'.encode())
-
-    msg = s.recv(1024).decode().replace("'",'"')
-
-    print(msg)
-
-    app = json.loads(msg)
-
-    if not app['category'] in categories:
-        categories.append(app['category'])
-    
-    if not app['category'] in store_apps:
-        store_apps[app['category']] = []
-
-    store_apps[app['category']].append(app)
-    store_all_apps.append(app)
-
-selected_category = categories[0]
-
 actions_categories = []
 actions_tiles = []
+
+def connect():
+    global s, socket, addr
+    s = socket.socket()
+
+    try: s.connect(addr)
+    except: exit()
+
+    s.send(b'GET_APPS')
+
+    all_app_ids = s.recv(1024).decode().split(',')
+
+    for app_id in all_app_ids:
+        s.send(f'GET_APP|{app_id}'.encode())
+
+        msg = s.recv(1024).decode().replace("'",'"')
+
+        print(msg)
+
+        app = json.loads(msg)
+
+        if not app['category'] in categories:
+            categories.append(app['category'])
+
+        if not app['category'] in store_apps:
+            store_apps[app['category']] = []
+
+        store_apps[app['category']].append(app)
+        store_all_apps.append(app)
+
+Thread(target=connect).start()
+
+selected_category = categories[0]
 
 def open_app(app:Application):
     global w, categories, actions_categories, update_apps, selected_category, store_apps, store_all_apps

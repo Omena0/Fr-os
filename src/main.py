@@ -19,13 +19,11 @@ def update_taskbar():
     global taskbar_icons, taskbar_area, taskbar_items
     taskbar_icons.children = []
     
-    taskbar_area.changed = True
-    taskbar_area.render()
-    
     taskbar.height = round(30*settings['scale'])
     
     taskbar_area.height = taskbar.height
     taskbar.setPos(0,round(size[1]-30*settings['scale']))
+    
     
     for i,app in enumerate(taskbar_items):
         ui.Button(
@@ -38,7 +36,7 @@ def update_taskbar():
             color=(35,35,35),
             hover_color=(35,35,35),
             corner_radius=round(5*settings['scale'])
-        ).add(taskbar_icons)
+        ).addTo(taskbar_icons,10)
 
         if app.icon != '':
             ui.Image(
@@ -46,13 +44,13 @@ def update_taskbar():
                 width=25*settings['scale'],
                 height=25*settings['scale'],
                 image_path=app.icon
-            ).add(taskbar_icons,2)
+            ).addTo(taskbar_icons,11)
         else:
             ui.Text(
                 position=(round((i*30+10)*settings['scale']),-5),
                 text='-',
                 size=50*settings['scale']
-            ).add(taskbar_icons,2)
+            ).addTo(taskbar_icons,2)
 
 # Apps, taskbar and start menu
 apps:set[Application] = []
@@ -64,19 +62,17 @@ init(globals(),locals())
 ### UI CODE ###
 
 root = ui.Root(
-    title="Fr Operating System V1.0.1 B2",
-    bg=(100,100,100),
-    res=size
+    size[0],
+    size[1],
+    "Fr Operating System V1.0.1 B2"
 )
-
-root.show(True)#,extraFlag=pygame.NOFRAME)
 
 
 ## Title bar
 bar = ui.Titlebar(
-    root.title,
+    root.name,
     border_radius=0
-).add(root,10)
+).add(10)
 
 ## Wallpaper
 background = ui.Image(
@@ -84,31 +80,33 @@ background = ui.Image(
     'assets/bg.png',
     size[0],
     size[1]
-).add(root,-5)
+).add(-5)
 
 ## Taskbar
 # Frame
-taskbar = ui.Frame(
-    position=(0,round(size[1]-30*settings['scale'])),
+with ui.Frame(
+    (0, round(size[1]-30*settings['scale'])),
     width=size[1],
-    height=30
-).add(root,5)
+    height=30*settings['scale']
+).add(10) as taskbar:
 
-# Area
-taskbar_area = ui.Area(
-    position=(0,0),
-    width=size[0],
-    height=30,
-    color=(40,40,40),
-    corner_radius=0
-).add(taskbar)
+    # Area
+    taskbar_area = ui.Area(
+        position=(0,0),
+        width=size[0],
+        height=30,
+        color=(40,40,40),
+        corner_radius=0
+    ).add(1)
 
-# Items
-taskbar_icons = ui.Frame(
-    position=(5,0),
-    width=size[0]-25,
-    height=30
-).add(taskbar,1)
+    # Items
+    taskbar_icons = ui.Frame(
+        (5, 0),
+        width=size[0]-25,
+        height=30
+    ).add(1)
+
+    print(taskbar.y)
 
 START_ICON_WIDTH = 50
 START_ICON_HEIGHT = 50
@@ -126,7 +124,7 @@ def open_apps_menu(app_):
         height = round(size[1]//3*settings['scale']),
         title = app_.name,
         on_quit=app_.quit
-    ).add(root,999)
+    ).add(999)
     app_.window = w
     
     i = -1
@@ -158,7 +156,7 @@ def open_apps_menu(app_):
                 width=START_ICON_WIDTH,
                 height=START_ICON_HEIGHT,
                 image_path=app.icon
-            ).add(w,1)
+            ).addTo(w,4)
         
         # Button
         ui.Button(
@@ -170,7 +168,7 @@ def open_apps_menu(app_):
             action=app.launch,
             color=(65,65,65),
             hover_color=(70,70,70)
-        ).add(w,1)
+        ).addTo(w,3)
 
     ui.Animation(
         component=w,
@@ -179,10 +177,8 @@ def open_apps_menu(app_):
         easing = 'exp',
         ease_in = False
     ).start()
-    
 
 apps_menu = Application('applications','Applications',open_apps_menu,ui.nothing,'assets/fr_os.png').pin()
-
 
 # Load apps
 
@@ -191,7 +187,8 @@ APPS_DIR = 'apps'
 def load_apps():
     for app in os.listdir(APPS_DIR):
         with open(f'{APPS_DIR}/{app}') as f: src = f.read()
-        exec(src,globals(),locals())
+        try: exec(src,globals(),locals())
+        except Exception as e: print(e) 
 
 load_apps()
 
@@ -210,5 +207,3 @@ root.addEventListener(event)
 
 while True:
     if not ui.update(): break
-
-ui.tasks['BEFORE_NEXT_FRAME'] = set()

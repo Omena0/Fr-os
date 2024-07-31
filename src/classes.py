@@ -47,9 +47,8 @@ class Application:
     
     def quit(self):
         global taskbar_items
-        if self.window:
-            if not self.window.quit_:
-                self.window.quit()
+        try: self.window.quit()
+        except: ...
         self.open = False
         if not self.pinned and self in taskbar_items:
             taskbar_items.remove(self)

@@ -45,7 +45,7 @@ def open_app(app:Application):
         on_quit=app.quit,
         color = (45,45,45),
         bg_focused_color=(45,45,45)
-    ).add(ui.root)
+    ).add(2)
     app.window = w
     
     # Top Box
@@ -56,14 +56,14 @@ def open_app(app:Application):
         height=40,
         color=(60,60,60),
         corner_radius=5
-    ).add(w)
+    ).addTo(w)
     
     ## Text
     text = ui.Text(
         position=(10,20),
         text='',
         size=35
-    ).add(w,2)
+    ).addTo(w,2)
     
     
     # Buttons
@@ -81,7 +81,7 @@ def open_app(app:Application):
                 corner_radius = 5,
                 color = (55,55,55),
                 hover_color = (70,70,70)
-            ).add(w,2)
+            ).addTo(w,5)
             
             if press[i] == '(':
                 slash_button = a
