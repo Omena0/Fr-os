@@ -4,7 +4,7 @@ from classes import Application, size
 if not 'settings' in globals(): settings = {'scale':1}
 
 def set_scale(x):
-    global open_app, START_ICON_HEIGHT, START_ICON_WIDTH, START_ICON_PADDING
+    global open_app, START_ICON_HEIGHT, START_ICON_WIDTH, START_ICON_PADDING, update_taskbar, bar
     try:
         settings['scale'] = float(x)
     except Exception:
@@ -28,9 +28,14 @@ def set_scale(x):
 
     START_ICON_PADDING = round(7*settings['scale'])
 
+def set_drag(x):
+    try:
+        ui.drag_high_quality = bool(x)
+    except Exception:
+        ui.drag_high_quality = False
 
 def open_app(app:Application):
-    global set_scale
+    global set_scale, set_drag
     x = size[0] // 2 - size[0]//3
     y = size[1] // 2 - size[1]//3
     w = ui.Window(
@@ -40,7 +45,7 @@ def open_app(app:Application):
         title = app.name,
         on_quit = app.quit
     ).add(ui.root)
-    app.window = w
+    app.windows.add(w)
     
     # Scale
     ui.Text(
@@ -48,8 +53,7 @@ def open_app(app:Application):
         text='System Scale',
         size=round(25*settings['scale'])
     ).add(w)
-    
-        
+
     ui.Textbox(
         position=(round(w.width-round(100*settings['scale'])-10),10),
         width=round(100*settings['scale']),
@@ -59,8 +63,24 @@ def open_app(app:Application):
         text=str(settings['scale'])
     ).add(w)
 
+    # Drag rectangle
+    ui.Text(
+        position=(10,35*settings['scale']+5),
+        text='Use dragging rectangle',
+        size=round(25*settings['scale'])
+    ).add(w)
 
-app = Application('settings','Settings',open_app,ui.nothing,'assets/settings.png').pin(add_to_taskbar=False)
+    ui.Textbox(
+        position=(round(w.width-round(100*settings['scale'])-10),35*settings['scale']+5),
+        width=round(100*settings['scale']),
+        height=round(25*settings['scale']),
+        size=round(30*settings['scale']),
+        action=set_drag,
+        text=str(settings['scale'])
+    ).add(w)
+
+
+app = Application('settings','Settings',open_app,ui.nothing,'assets/settings/settings_icon.png').pin(add_to_taskbar=False)
 
 
 

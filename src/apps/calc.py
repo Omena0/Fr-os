@@ -46,7 +46,7 @@ def open_app(app:Application):
         color = (45,45,45),
         bg_focused_color=(45,45,45)
     ).add(ui.root)
-    app.window = w
+    app.windows.add(w)
     
     # Top Box
     ## Area
@@ -88,6 +88,6 @@ def open_app(app:Application):
 
 
 
-app = Application('calc','Calculator',open_app,ui.nothing,iconPath='assets/calculator.png').pin()#add_to_taskbar=False)
+app = Application('calc','Calculator',open_app,ui.nothing,iconPath='assets/calc/calc_icon.png').pin()#add_to_taskbar=False)
 
 

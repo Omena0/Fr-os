@@ -1,5 +1,6 @@
 import engine as ui
 import os
+import pathlib
 from classes import *
 
 size = size[0]//2, size[1]//2
@@ -12,7 +13,8 @@ pygame = ui.pygame
 
 # Settings
 settings:dict[str,str|int|float|bool] = {
-    "scale": 1
+    "scale": 1,
+    "use_dragging_rectangle": False
 }
 
 def update_taskbar():
@@ -55,7 +57,8 @@ def update_taskbar():
             ).add(taskbar_icons,2)
 
 # Apps, taskbar and start menu
-apps:set[Application] = []
+apps:set[Application] = set()
+app_ids:set[str] = set()
 
 taskbar_items:list[Application] = []
 
@@ -69,7 +72,7 @@ root = ui.Root(
     res=size
 )
 
-root.show(True)#,extraFlag=pygame.NOFRAME)
+root.show(True)
 
 
 ## Title bar
@@ -116,7 +119,7 @@ START_ICON_HEIGHT = 50
 START_ICON_PADDING = 7
 
 # Apps menu
-def open_apps_menu(app_):
+def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
     update_taskbar()
     y_ = size[1] - round(size[1]//3*settings['scale']) - taskbar.height - 10
 
@@ -188,11 +191,30 @@ apps_menu = Application('applications','Applications',open_apps_menu,ui.nothing,
 
 APPS_DIR = 'apps'
 
+def unload(app_id):
+    app_ids.remove(app_id)
+    for app in apps:
+        if app.id == app_id:
+            apps.remove(app)
+            try: taskbar_items.remove(app)
+            except: ...
+            app.quit()
+            break
+    update_taskbar()
+
 def load_apps():
     for app in os.listdir(APPS_DIR):
-        with open(f'{APPS_DIR}/{app}') as f: src = f.read()
-        try: exec(src,globals(),locals())
-        except Exception as e: print(e)
+        app_id = app.rsplit('.')[0]
+
+        if app_id in app_ids:
+            if app_id == 'appstore': continue
+            unload(app_id)
+
+        src = pathlib.Path(f'{APPS_DIR}/{app}').read_text()
+        globals().update(locals())
+        try: exec(src,globals(),globals())
+        except Exception as e: print(f'[AppManager] App "{app_id}" failed to load! [{e}]')
+
 
 load_apps()
 
@@ -211,5 +233,3 @@ root.addEventListener(event)
 
 while True:
     if not ui.update(): break
-
-ui.tasks['BEFORE_NEXT_FRAME'] = set()

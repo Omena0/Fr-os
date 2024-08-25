@@ -5,7 +5,8 @@ from types import FunctionType
 # Will get overwritten by init() (supress ide errors)
 def update_taskbar(): ...
 start_pinned = []
-apps = []
+apps = set()
+app_ids = set()
 
 def init(g,l):
     globals().update(g)
@@ -17,15 +18,21 @@ class Application:
         self.name = name
         self.onLaunch = onLaunch
         self.onQuit = onQuit
-        self.window = None
+        self.windows = set()
         
         self.icon = iconPath
         
         self.pinned = False
         self.open = False
 
-        apps.append(self)
-    
+        for i in apps:
+            if i.id == self.id:
+                del self
+                return
+
+        apps.add(self)
+        app_ids.add(self.id)
+
     def pin(self,add_to_taskbar=True,add_to_start=True):
         if add_to_start: start_pinned.append(self)
         if add_to_taskbar:
@@ -47,9 +54,10 @@ class Application:
     
     def quit(self):
         global taskbar_items
-        if self.window:
-            if not self.window.quit_:
-                self.window.quit()
+        for window in self.windows:
+            if not window.quit_:
+                window.quit()
+
         self.open = False
         if not self.pinned and self in taskbar_items:
             taskbar_items.remove(self)

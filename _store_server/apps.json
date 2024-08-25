@@ -1,26 +1,24 @@
 {
-    "calc": {   
+    "calc": {
+        "id": "calc",
         "name": "Calculator",
-        "description": "A simple calculator",
-        "category": "Utility"
+        "description": "A simple calculator\n\nSupports the following math operations:\n- Addition\n- Substraction\n- Multiplication\n- Division\n- Exponentiation",
+        "category": "Utility",
+        "files": {
+            "app":  "2385732fb40004a3af532419dd7a384d3c9e5fe4",
+            "icon": "fe2b7f80e7ac3e8b94957a3e303a0a9fb1c9d184",
+            "banner": ""
+        }
     },
     "settings": {
         "id": "settings",
         "name": "Settings",
-        "description": "Change settings",
-        "category": "Utility"
-    },
-    "terminal": {
-        "id": "terminal",
-        "name": "Terminal",
-        "description": "Terminal.",
-        "category": "Utility"
-    },
-
-    "store": {
-        "id": "store",
-        "name": "Fr-store",
-        "description": "This app frfr",
-        "category": "Internet"
+        "description": "Change settings\n\nThis app lets you change the following settings:\n- System scale",
+        "category": "Utility",
+        "files": {
+            "app":  "888c15d72e41c9f0f1882f4aea4c2d19f1a044eb",
+            "icon": "1f6b465610d877aad0fccc5380a8ed985b65ac37",
+            "banner": ""
+        }
     }
 }

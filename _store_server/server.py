@@ -1,19 +1,26 @@
 from threading import Thread
+import hashlib
 import socket
 import json
+import os
+
+try: os.chdir('_store_server')
+except: ...
 
 FILES_PATH = 'files'
 
 apps = json.load(open('apps.json'))
 apps_list = [id for id in apps]
 
-print(apps)
-
 files = {}
 for id,app in apps.items():
-    files[hash(f'{id}.py')] = f'{FILES_PATH}/{id}.py'
-    files[hash(f'{id}_icon.png')] = f'{FILES_PATH}/{id}_icon.png'
-    files[hash(f'{id}_banner.png')] = f'{FILES_PATH}/{id}_banner.png'
+    files[hashlib.sha1(f'{id}.py'.encode()).hexdigest()] = f'{FILES_PATH}/apps/{id}.py'
+    files[hashlib.sha1(f'{id}_icon.png'.encode()).hexdigest()] = f'{FILES_PATH}/icons/{id}_icon.png'
+    files[hashlib.sha1(f'{id}_banner.png'.encode()).hexdigest()] = f'{FILES_PATH}/banners/{id}_banner.png'
+
+
+for file in files.items():
+    print(file)
 
 
 addr = ('127.0.0.1', 6969)
@@ -28,8 +35,9 @@ s.listen(5)
 def csHandler(cs:socket.socket,addr):
     while True:
         try:
-            msg = cs.recv(1024).decode().split('|')
-
+            msg = cs.recv(1024).decode()
+            if msg == '': continue
+            msg = msg.strip().split('|')
             print(msg)
 
             if msg[0] == 'GET_APPS':
