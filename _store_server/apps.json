@@ -2,6 +2,7 @@
     "calc": {
         "id": "calc",
         "name": "Calculator",
+        "version": 1,
         "description": "A simple calculator\n\nSupports the following math operations:\n- Addition\n- Substraction\n- Multiplication\n- Division\n- Exponentiation",
         "category": "Utility",
         "files": {
@@ -13,11 +14,24 @@
     "settings": {
         "id": "settings",
         "name": "Settings",
-        "description": "Change settings\n\nThis app lets you change the following settings:\n- System scale",
+        "version": 1,
+        "description": "Change settings\n\nThis app lets you change the following settings:\n- System scale\n- Window drag quality",
         "category": "Utility",
         "files": {
             "app":  "888c15d72e41c9f0f1882f4aea4c2d19f1a044eb",
             "icon": "1f6b465610d877aad0fccc5380a8ed985b65ac37",
+            "banner": ""
+        }
+    },
+    "store": {
+        "id": "store",
+        "name": "Fr-store",
+        "version": 3,
+        "description": "The app youre in right now lmao",
+        "category": "core",
+        "files": {
+            "app": "2682ba74dba68d0cd20ef0deaa7798385878028b",
+            "icon": "8e4688f108d3bf66ee3baff0d1fc9b4130422e9c",
             "banner": ""
         }
     }

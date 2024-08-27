@@ -5,6 +5,9 @@ from threading import Thread
 from copy import copy
 import time as t
 import pygame
+import PIL.Image
+from io import BytesIO
+
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -88,9 +91,8 @@ class Text(Component):
         for segment in self.text.split('\n'):
             text = font.render(segment, True, self.color,self.bg_color)
             blits.append((text, (self.abs_x, self.abs_y+(self.size+3)*i)))
-            if segment.strip() == '':
-                i += 0.5
-            else: i += 1
+            i += 0.5 if segment.strip() == '' else 1
+            
         root.disp.blits(blits)
         self.changed = False
 
@@ -125,7 +127,7 @@ class Button(Component):
         self.height = height
         self.action = action
         self.color = color
-        self.hoverColor = hover_color
+        self.hover_color = hover_color
         self.font_color = font_color
         self.font = font
         self.hovered = False
@@ -163,7 +165,7 @@ class Button(Component):
 
     def render(self):
         if not self.changed: return
-        color = self.color if not self.hovered else self.hoverColor
+        color = self.hover_color if self.hovered else self.color
         pygame.draw.rect(
             root.disp,
             color,
@@ -191,7 +193,10 @@ class Button(Component):
             event.handled = True
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
             event.handled = True
-            self.action()
+            try: self.action()
+            except Exception as e:
+                print(e)
+                if debug: raise e
 
     def tick(self,frame):
         # CheckHovered every tick (performance)
@@ -367,7 +372,7 @@ class Textbox(Component):
         self.hovered = x in range(self.abs_x, self.abs_x + self.width) and y in range(self.abs_y, self.abs_y + self.height)
         return self.hovered
 
-    def render(self):
+    def render(self):  # sourcery skip: extract-method
         global frame
         if not self.changed: return
         
@@ -392,11 +397,17 @@ class Textbox(Component):
 
             # Blinking cursor (i love this lmao)
             a = f'{self.text}|' if focus == self and frame//15 % 2 == 0 else self.text
-            text = font.render(a, 1, self.fontColor)
+            a = a.strip()
 
-            x = self.abs_x + 5
-            y = self.abs_y + (self.height - self.size) // 2
-            root.disp.blit(text, (x, y))
+            blits = []
+            i = 0
+            for segment in a.split('\n'):
+                text = font.render(segment, True, self.fontColor)
+                blits.append((text, (3+self.abs_x, 2+self.abs_y+(self.size)*i)))
+                i += 0.5 if segment.strip() == '' else 1
+                
+            root.disp.blits(blits)
+
         self.changed = False
 
     def tick(self,frame):
@@ -404,7 +415,7 @@ class Textbox(Component):
         # CheckHovered every second tick (perf)
         self.checkHovered()
         # Key repeat timer
-        if self.pressed: self.repeat_timer += 10
+        if self.pressed: self.repeat_timer += 1
         if not self.repeating and self.repeat_timer > self.repeat_delay:
             self.repeating = True
             self.repeat_timer = 0
@@ -448,20 +459,19 @@ class Textbox(Component):
         # Text input
         if event.type == pygame.KEYDOWN and focus == self:
             event.handled = True
-            if focus == self:
-                if event.key == pygame.K_BACKSPACE:
-                    self.pressed = 'BACKSPACE'
-                    if pygame.key.get_mods() & pygame.KMOD_CTRL:
-                        words = self.text.split()
-                        self.text = ' '.join(words[:-1]) if words else ''
-                    else:
-                        self.text = self.text[:-1]
+            if event.key == pygame.K_BACKSPACE:
+                self.pressed = 'BACKSPACE'
+                if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    words = self.text.split()
+                    self.text = ' '.join(words[:-1]) if words else ''
                 else:
-                    self.text += event.unicode
-                    self.pressed = event.unicode
+                    self.text = self.text[:-1]
+            else:
+                self.text += event.unicode.replace('\r','\n')
+                self.pressed = event.unicode
 
-                if self.action:
-                    self.action(self.text)
+            if self.action:
+                self.action(self.text)
 
         elif event.type == pygame.KEYUP and focus == self:
             event.handled = True
@@ -473,9 +483,10 @@ class Image(Component):
     def __init__(
             self,
             position,
-            image_path,
-            width=None,
-            height=None
+            image_path = None,
+            width = None,
+            height = None,
+            fs = None
         ):
         self.parent = None
 
@@ -490,7 +501,14 @@ class Image(Component):
         self.abs_y = self.y
 
         # Image
-        self.image_path = image_path
+        if fs:
+            with fs:
+                self.bytes = fs.read(image_path)
+                self.image = None
+        else:
+            self.image = image_path
+            self.bytes = None
+
         self.update_image()
 
         # Rendering
@@ -509,13 +527,25 @@ class Image(Component):
         return self
 
     def update_image(self):
-        self.image = pygame.image.load(self.image_path)
+        try:
+            if self.bytes:
+                img = PIL.Image.open(BytesIO(self.bytes))
+                self.image = pygame.image.fromstring(img.tobytes(), img.size, img.mode).convert_alpha()
+
+            else:
+                self.image = pygame.image.load(self.image)
+
+        except Exception as e:
+            print(f'Failed to load image: {self.image}')
+            raise ValueError(f'Failed to load image: {self.image}') from e
+
         if not (self.width and self.height): return
         self.image = pygame.transform.smoothscale(self.image,(self.width,self.height))
 
     def render(self):
         if not self.changed: return
-        root.disp.blit(self.image, (self.abs_x, self.abs_y))
+        if hasattr(self,'image'):
+            root.disp.blit(self.image, (self.abs_x, self.abs_y))
         self.changed = False
         return self
 
@@ -1085,7 +1115,7 @@ class Window(Component):
         self.children.append(child)
         self.children = sorted(self.children,key=lambda x: x.layer)
 
-    def render(self):
+    def render(self):  # sourcery skip: extract-method
         if self.changed:
             ## Title bar
             color = self.bgFocusedColor if focus == self else self.bgColor
@@ -1164,7 +1194,7 @@ class Window(Component):
                 for child in self.children:
                     child.setPos(child.x,child.y)
 
-    def tick(self,frame):
+    def tick(self,frame):  # sourcery skip: extract-method
         # CheckHovered every tick (performance)
         self.checkHovered()
         if focus == self:
@@ -1487,7 +1517,7 @@ class Root:
         while f == frame: t.sleep(0.001)
 
 
-def update():
+def update():  # sourcery skip: extract-method
     global frame, root, dt, running
     try:
         frame += 1
@@ -1500,19 +1530,18 @@ def update():
                 pygame.quit()
 
             root.event(event)
-        
+
         if not running: return
         dt = clock.tick(120)
-        
+
         pygame.display.flip()
         return root
     except pygame.error as e:
         running = False
         if e == 'display surface quit':
             return
-        else:
-            print(e)
-            if debug: raise e
+        print(e)
+        if debug: raise e
         return
 
     except Exception as e:
@@ -1655,8 +1684,8 @@ debug = True
 # Display event debug information
 debug_events = False
 
-# Makes the dragging thing a rectangle kinda like in windows with the setting off
-drag_high_quality = False
+# Whether to move the entire window or just draw a rectangle when dragging a window
+drag_high_quality = True
 
 def mainloop():
     global running

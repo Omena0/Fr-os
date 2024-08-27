@@ -1,7 +1,6 @@
+from classes import *
 import engine as ui
 import os
-import pathlib
-from classes import *
 
 size = size[0]//2, size[1]//2
 
@@ -27,7 +26,7 @@ def update_taskbar():
     taskbar.height = round(30*settings['scale'])
     
     taskbar_area.height = taskbar.height
-    taskbar.setPos(0,round(size[1]-30*settings['scale']))
+    taskbar.setPos(0,round(root.disp.get_height()-30*settings['scale']))
     
     for i,app in enumerate(taskbar_items):
         ui.Button(
@@ -47,7 +46,8 @@ def update_taskbar():
                 position=(round((i*30+3)*settings['scale']),1+settings['scale']*2),
                 width=25*settings['scale'],
                 height=25*settings['scale'],
-                image_path=app.icon
+                image_path=app.icon,
+                fs = fs
             ).add(taskbar_icons,2)
         else:
             ui.Text(
@@ -58,6 +58,7 @@ def update_taskbar():
 
 # Apps, taskbar and start menu
 apps:set[Application] = set()
+apps_dict:dict[str,Application] = {}
 app_ids:set[str] = set()
 
 taskbar_items:list[Application] = []
@@ -86,7 +87,8 @@ background = ui.Image(
     (0,0),
     'assets/bg.png',
     size[0],
-    size[1]
+    size[1],
+    fs
 ).add(root,-5)
 
 ## Taskbar
@@ -158,10 +160,11 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
         if app.icon:
             ui.Image(
                 position=(x,y),
+                image_path=app.icon,
                 width=START_ICON_WIDTH,
                 height=START_ICON_HEIGHT,
-                image_path=app.icon
-            ).add(w,1)
+                fs=fs
+            ).add(w,3)
         
         # Button
         ui.Button(
@@ -184,7 +187,7 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
     ).start()
     
 
-apps_menu = Application('applications','Applications',open_apps_menu,ui.nothing,'assets/fr_os.png').pin()
+apps_menu = Application('applications','Applications',open_apps_menu,ui.nothing,'assets/core/fr_os.png').pin()
 
 
 # Load apps
@@ -203,17 +206,20 @@ def unload(app_id):
     update_taskbar()
 
 def load_apps():
-    for app in os.listdir(APPS_DIR):
-        app_id = app.rsplit('.')[0]
+    with fs:
+        for app in fs.listdir('/apps'):
+            app_id = app.rsplit('.')[0]
 
-        if app_id in app_ids:
-            if app_id == 'appstore': continue
-            unload(app_id)
+            if app_id in app_ids:
+                if app_id == 'appstore': continue
+                unload(app_id)
 
-        src = pathlib.Path(f'{APPS_DIR}/{app}').read_text()
-        globals().update(locals())
-        try: exec(src,globals(),globals())
-        except Exception as e: print(f'[AppManager] App "{app_id}" failed to load! [{e}]')
+            src = fs.read(f'{APPS_DIR}/{app}')
+            globals().update(locals())
+            try: exec(src,globals(),globals())
+            except Exception as e:
+                print(f'[AppManager] App "{app_id}" failed to load! [{e}]')
+                raise e
 
 
 load_apps()
@@ -231,5 +237,5 @@ def event(event):
 
 root.addEventListener(event)
 
-while True:
-    if not ui.update(): break
+while ui.update():
+    pass

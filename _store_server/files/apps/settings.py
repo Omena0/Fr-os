@@ -1,7 +1,7 @@
 import engine as ui
 from classes import Application, size
 
-if not 'settings' in globals(): settings = {'scale':1}
+if 'settings' not in globals(): settings = {'scale': 1, 'use_dragging_rectangle': False}
 
 def set_scale(x):
     global open_app, START_ICON_HEIGHT, START_ICON_WIDTH, START_ICON_PADDING, update_taskbar, bar
@@ -28,6 +28,14 @@ def set_scale(x):
 
     START_ICON_PADDING = round(7*settings['scale'])
 
+def set_rect(x):
+    try: 
+        settings['use_dragging_rectangle'] = bool(x)
+        ui.drag_high_quality = bool(x)
+    except Exception as e:
+        print(e)
+        settings['use_dragging_rectangle'] = False
+        ui.drag_high_quality = False
 
 def open_app(app:Application):
     global set_scale
@@ -48,14 +56,31 @@ def open_app(app:Application):
         text='System Scale',
         size=round(25*settings['scale'])
     ).add(w)
-    
-        
+
+
     ui.Textbox(
         position=(round(w.width-round(100*settings['scale'])-10),10),
         width=round(100*settings['scale']),
         height=round(25*settings['scale']),
         size=round(30*settings['scale']),
         action=set_scale,
+        text=str(settings['scale'])
+    ).add(w)
+
+    # Drag rect
+    ui.Text(
+        position=(10,40),
+        text='Use Dragging Rectangle',
+        size=round(25*settings['scale'])
+    ).add(w)
+
+
+    ui.Textbox(
+        position=(round(w.width-round(100*settings['scale'])-10),40),
+        width=round(100*settings['scale']),
+        height=round(25*settings['scale']),
+        size=round(30*settings['scale']),
+        action=set_rect,
         text=str(settings['scale'])
     ).add(w)
 

@@ -1,7 +1,7 @@
 import engine as ui
 from classes import Application, size
 
-if not 'settings' in globals(): settings = {'scale':1}
+if 'settings' not in globals(): settings = {'scale': 1, 'use_dragging_rectangle': False}
 
 buttons = ['(','^','C','CE','7','8','9',' * ','4','5','6',' / ','1','2','3',' + ','.','0','=',' - ']
 
@@ -88,6 +88,6 @@ def open_app(app:Application):
 
 
 
-app = Application('calc','Calculator',open_app,ui.nothing,iconPath='assets/calc/calc_icon.png').pin()#add_to_taskbar=False)
+app = Application('calc','Calculator',1,open_app,ui.nothing,iconPath='assets/calc/calc_icon.png').pin()#add_to_taskbar=False)
 
 

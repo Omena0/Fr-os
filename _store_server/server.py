@@ -18,9 +18,9 @@ for id,app in apps.items():
     files[hashlib.sha1(f'{id}_icon.png'.encode()).hexdigest()] = f'{FILES_PATH}/icons/{id}_icon.png'
     files[hashlib.sha1(f'{id}_banner.png'.encode()).hexdigest()] = f'{FILES_PATH}/banners/{id}_banner.png'
 
-
-for file in files.items():
-    print(file)
+print('---- Files ----')
+for hash,name in files.items():
+    print(f'{name:<40} - {hash:40}')
 
 
 addr = ('127.0.0.1', 6969)
@@ -36,7 +36,10 @@ def csHandler(cs:socket.socket,addr):
     while True:
         try:
             msg = cs.recv(1024).decode()
-            if msg == '': continue
+            if msg == '':
+                cs.send(b'')
+                continue
+
             msg = msg.strip().split('|')
             print(msg)
 
@@ -50,13 +53,13 @@ def csHandler(cs:socket.socket,addr):
                     cs.send(b'INVALID')
                     print('INVALID')
                     continue
-                
+
                 a = f'{apps[msg[1]]}'
                 print(a)
                 cs.send(a.encode())
 
             elif msg[0] == 'GET_FILE':
-                if not msg[1] in files:
+                if msg[1] not in files:
                     cs.send(b'INVALID')
                     print('INVALID')
                     continue
@@ -75,5 +78,5 @@ def csHandler(cs:socket.socket,addr):
 
 while True:
     cs,addr = s.accept()
-    Thread(target=csHandler, args=(cs,addr)).start()
+    Thread(target=csHandler, args=(cs,addr), daemon=True).start()
     print(f'[+] {addr}')

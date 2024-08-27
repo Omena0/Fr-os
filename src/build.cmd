@@ -1,1 +1,0 @@
-py -m nuitka --onefile --standalone main.py
