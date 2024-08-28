@@ -62,7 +62,6 @@ install_buttons = {}
 
 def get_file(app,key,dir):
     global s, fs_open
-    #if fs.exists(dir): return True
     if app['files'][key] == '': return False
 
     print(f'Downloading: {key} to {dir}')
@@ -101,6 +100,15 @@ def open_app_page(store:Application,app):
         ).add(w2)
     # No banner was found, display blank area with text
     else:
+        font_size = w2.width
+        text = 'BANNER NOT FOUND'
+        font = ui.pygame.font.SysFont(None,font_size)
+        while (
+            font.render(text,1,(255,255,255)).get_width() > w2.width - 30
+        ):
+            font_size -= 2
+            font = ui.pygame.font.SysFont(None,font_size)
+
         ui.Area(
             (0,0),
             w2.width,
@@ -109,9 +117,9 @@ def open_app_page(store:Application,app):
         ).add(w2)
 
         ui.Text(
-            (w2.width//2-150,w2.height//6-15),
-            'BANNER NOT FOUND',
-            40,
+            (15,w2.height//6-font_size//2),
+            text,
+            font_size,
             (85,85,85)
         ).add(w2,1)
 
@@ -150,8 +158,10 @@ def open_app_page(store:Application,app):
     # Install button
 
     width = 100
-    print(apps_dict[app['id']].version)
-    if app['version'] > apps_dict[app['id']].version:
+    try: can_update = app['version'] > apps_dict[app['id']].version
+    except: can_update = False
+
+    if can_update:
         text = 'Update'
         action = lambda: update(app)
         color = (70, 152, 240)
@@ -169,6 +179,7 @@ def open_app_page(store:Application,app):
         action = lambda: uninstall(app)
         color = (255,60,60)
         hover_color = (255,70,70)
+    
     else:
         text = 'Install'
         action = lambda: install(app)
@@ -197,7 +208,7 @@ def open_app_page(store:Application,app):
         font_size // 2.5 * longest_line >= w2.width - 15
         or (font_size + 3) * linecount >= w2.height // 3 * 2
     ):
-        font_size -= 1
+        font_size -= 2
 
     ui.Text(
         (5,w2.height//3+10),
@@ -350,7 +361,7 @@ def update_apps(apps:list):
 
 
 
-store_app = Application('store','Fr-store',2,open_store_page,ui.nothing,'assets/store/store_icon.png').pin()
+store_app = Application('store','Fr-store',3,open_store_page,ui.nothing,'assets/store/store_icon.png').pin()
 
 
 

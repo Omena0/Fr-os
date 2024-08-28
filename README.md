@@ -1,4 +1,7 @@
 
-# A fucking window manager
+# Fr-os
 
-Not even an os.
+Features:
+
+- File system
+- Appstore

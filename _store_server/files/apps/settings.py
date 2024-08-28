@@ -85,7 +85,7 @@ def open_app(app:Application):
     ).add(w)
 
 
-app = Application('settings','Settings',open_app,ui.nothing,'assets/settings/settings_icon.png').pin(add_to_taskbar=False)
+app = Application('settings','Settings',1,open_app,ui.nothing,'assets/settings/settings_icon.png').pin(add_to_taskbar=False)
 
 
 

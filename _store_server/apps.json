@@ -26,7 +26,7 @@
     "store": {
         "id": "store",
         "name": "Fr-store",
-        "version": 3,
+        "version": 4,
         "description": "The app youre in right now lmao",
         "category": "core",
         "files": {

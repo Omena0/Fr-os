@@ -78,7 +78,8 @@ class Application:
         if not self.pinned and self in taskbar_items:
             taskbar_items.remove(self)
         update_taskbar()
-        self.onQuit(self)
+        try: self.onQuit(self)
+        except: ...
 
 class FileSystem:
     def __init__(self, path:str):

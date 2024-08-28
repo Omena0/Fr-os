@@ -187,7 +187,7 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
     ).start()
     
 
-apps_menu = Application('applications','Applications',open_apps_menu,ui.nothing,'assets/core/fr_os.png').pin()
+apps_menu = Application('applications','Applications',1,open_apps_menu,ui.nothing,'assets/core/fr_os.png').pin()
 
 
 # Load apps

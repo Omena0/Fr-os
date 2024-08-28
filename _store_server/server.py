@@ -9,14 +9,20 @@ except: ...
 
 FILES_PATH = 'files'
 
-apps = json.load(open('apps.json'))
-apps_list = [id for id in apps]
+def load_apps():
+    global apps, apps_list, files
+    with open('apps.json') as f:
+        apps = json.load(f)
 
-files = {}
-for id,app in apps.items():
-    files[hashlib.sha1(f'{id}.py'.encode()).hexdigest()] = f'{FILES_PATH}/apps/{id}.py'
-    files[hashlib.sha1(f'{id}_icon.png'.encode()).hexdigest()] = f'{FILES_PATH}/icons/{id}_icon.png'
-    files[hashlib.sha1(f'{id}_banner.png'.encode()).hexdigest()] = f'{FILES_PATH}/banners/{id}_banner.png'
+    apps_list = [id for id in apps]
+
+    files = {}
+    for id,app in apps.items():
+        files[hashlib.sha1(f'{id}.py'.encode()).hexdigest()] = f'{FILES_PATH}/apps/{id}.py'
+        files[hashlib.sha1(f'{id}_icon.png'.encode()).hexdigest()] = f'{FILES_PATH}/icons/{id}_icon.png'
+        files[hashlib.sha1(f'{id}_banner.png'.encode()).hexdigest()] = f'{FILES_PATH}/banners/{id}_banner.png'
+
+load_apps()
 
 print('---- Files ----')
 for hash,name in files.items():
@@ -37,18 +43,19 @@ def csHandler(cs:socket.socket,addr):
         try:
             msg = cs.recv(1024).decode()
             if msg == '':
-                cs.send(b'')
+                cs.send(b' ')
                 continue
 
             msg = msg.strip().split('|')
-            print(msg)
 
             if msg[0] == 'GET_APPS':
+                load_apps()
                 a = f'{','.join(apps_list)}'
                 print(a)
                 cs.send(a.encode())
 
             elif msg[0] == 'GET_APP':
+                load_apps()
                 if msg[1] not in apps_list:
                     cs.send(b'INVALID')
                     print('INVALID')
@@ -59,6 +66,7 @@ def csHandler(cs:socket.socket,addr):
                 cs.send(a.encode())
 
             elif msg[0] == 'GET_FILE':
+                load_apps()
                 if msg[1] not in files:
                     cs.send(b'INVALID')
                     print('INVALID')
@@ -66,6 +74,7 @@ def csHandler(cs:socket.socket,addr):
 
                 with open(files[msg[1]],'rb') as file:
                     cs.sendfile(file)
+                    del file
 
         except Exception as e:
             print(e)
@@ -73,6 +82,7 @@ def csHandler(cs:socket.socket,addr):
                 cs.close()
             except: ...
             print(f'[-] {addr}')
+            del cs
             break
 
 
