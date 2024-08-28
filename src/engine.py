@@ -116,7 +116,8 @@ class Button(Component):
             hover_color=(150, 150, 150),
             font_color=(255, 255, 255),
             corner_radius=10,
-            font=None
+            font=None,
+            center = True
         ):
         self.parent = None
         
@@ -132,6 +133,7 @@ class Button(Component):
         self.font = font
         self.hovered = False
         self.corner_radius = corner_radius
+        self.center = center
         
         # Position
         self.pos = position
@@ -173,11 +175,24 @@ class Button(Component):
             0,
             self.corner_radius
         )
+        blits = []
         font = pygame.font.SysFont(self.font, self.size)
-        text = font.render(self.text, 1, self.font_color)
-        x = self.abs_x + (self.width - text.get_width()) // 2
-        y = self.abs_y + (self.height - text.get_height()) // 2
-        root.disp.blit(text, (x, y))
+        i = 0
+        for segment in self.text.split('\n'):
+            text = font.render(segment, True, self.font_color)
+
+            if self.center:
+                x = self.abs_x + (self.width - text.get_width()) // 2
+                y = self.abs_y + (self.height - text.get_height()*(self.text.count('\n')*1.6+1)) // 2
+            else:
+                x = 5 + self.abs_x
+                y = self.abs_y + (self.height - text.get_height()*(self.text.count('\n')*1.6+1)) // 2
+
+            blits.append((text, (x, y+(self.size+3)*i)))
+            i += 0.5 if segment.strip() == '' else 1
+            
+        root.disp.blits(blits)
+
         self.changed = False
         return self
 
@@ -193,7 +208,10 @@ class Button(Component):
             event.handled = True
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
             event.handled = True
-            try: self.action()
+            try:
+                try: self.action(self)
+                except TypeError:
+                    self.action()
             except Exception as e:
                 print(e)
                 if debug: raise e
@@ -1220,7 +1238,7 @@ class Window(Component):
                 child.tick(frame)
 
     def remove(self,child):
-        self.children.remove(object)
+        self.children.remove(child)
 
 class Tab(Component):
     def __init__(self):

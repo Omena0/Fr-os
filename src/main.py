@@ -127,7 +127,7 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
 
     w = ui.Window(
         position = (10,y_+round(size[1]//3*settings['scale'])+taskbar.height+10),
-        width = round(size[0]//4*settings['scale']),
+        width = round(size[0]//4*settings['scale'])+3,
         height = round(size[1]//3*settings['scale']),
         title = app_.name,
         on_quit=app_.quit
@@ -207,7 +207,7 @@ def unload(app_id):
 
 def load_apps():
     with fs:
-        for app in fs.listdir('/apps'):
+        for app in fs.listdir('/apps/'):
             app_id = app.rsplit('.')[0]
 
             if app_id in app_ids:

@@ -32,6 +32,8 @@ class Application:
         self.version = version
         self.onLaunch = onLaunch
         self.onQuit = onQuit
+    
+        self.window = None
         self.windows = set()
         
         self.icon = iconPath
@@ -152,14 +154,29 @@ class FileSystem:
 
         self.files[name].update(meta)
 
-    def dir_contains(self, file:str, dir:str):
-        dir = dir.removeprefix('/').removesuffix('/')
-        return file.removeprefix('/').startswith(f'{dir}/')
-
     def listdir(self, dir:str):
         if dir == '.': dir = '/'
 
-        return [file['name'] for file in self.files.values() if self.dir_contains(file['path'], dir)]
+        files   = set()
+        folders = set()
+
+        for file in self.files:
+
+            if file.startswith(dir):
+                file = file.removeprefix(dir).split('/')
+                if len(file) == 1:
+                    file = file[0]
+                    if file == '/': continue
+                    files.add(file)
+                else:
+                    file = f'{file[0]}/'
+                    if file == '/': continue
+                    folders.add(file)
+
+        result = list(sorted(folders))
+        result.extend(sorted(files))
+
+        return result
 
 
     def __enter__(self):
@@ -191,5 +208,7 @@ class fs_open:
     def __exit__(self, exc_type, exc_val, exc_tb):
         fs.close()
 
+with fs:
+    print(fs.listdir('/apps/'))
 
 size =  screeninfo.get_monitors()[0].width, screeninfo.get_monitors()[0].height

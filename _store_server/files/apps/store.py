@@ -58,7 +58,6 @@ selected_category = categories[0]
 actions_categories = []
 actions_tiles = []
 
-install_buttons = {}
 
 def get_file(app,key,dir):
     global s, fs_open
@@ -80,7 +79,7 @@ def open_app_page(store:Application,app):
     # Create secondary window
     w2 = ui.Window(
         (x, y),
-        width =  round(size[0]//3*settings['scale']),
+        width =  round(size[0]//3*settings['scale'])+30,
         height = round(size[1]//2*settings['scale']),
         title = app['name']
     ).add(ui.root,100)
@@ -186,7 +185,7 @@ def open_app_page(store:Application,app):
         color = (70, 152, 240)
         hover_color = (75, 162, 250)
 
-    a = ui.Button(
+    b = ui.Button(
         (20+w2.width//5,30+w2.height//6-30),
         width,
         32,
@@ -196,9 +195,7 @@ def open_app_page(store:Application,app):
         color = color,
         hover_color = hover_color
     ).add(w2,4)
-
-    install_buttons[app['id']] = a
-    print(install_buttons)
+    w2.button = b
 
     # Description text
     font_size = 30
@@ -224,22 +221,19 @@ def install(app):
 
     if app['id'] in app_ids: return
 
-    store = app['id'] == 'store'
-
     print(f'Installing {app['name']}')
     get_file(app,'app',f'apps/{app['id']}.py')
     get_file(app,'icon',f'assets/{app['id']}/{app['id']}_icon.png')
     load_apps()
 
-    if not store and app['id'] in app_ids:
-        install_buttons[app['id']].text        = 'Uninstall'
-        install_buttons[app['id']].action = lambda: uninstall(app)
-        install_buttons[app['id']].color       = (255,60,60)
-        install_buttons[app['id']].hover_color = (255,70,70)
+    open_store_page(store_app)
+    button = open_app_page(store_app,app).button
 
-    else:
-        open_store_page(store_app)
-        open_app_page(store_app,app)
+    button.text        = 'Uninstall'
+    button.action = lambda: uninstall(app)
+    button.color       = (255,60,60)
+    button.hover_color = (255,70,70)
+
 
 
 def update(app):
@@ -259,10 +253,14 @@ def uninstall(app):
         for file in fs.listdir(f'assets/{app['id']}'):
             fs.delete(f'assets/{app["id"]}/{file}')
         load_apps()
-    install_buttons[app['id']].text        = 'Install'
-    install_buttons[app['id']].action = lambda: install(app)
-    install_buttons[app['id']].color       = (70, 152, 240)
-    install_buttons[app['id']].hover_color = (75, 162, 250)
+    
+    open_store_page(store_app)
+    button = open_app_page(store_app,app).button
+
+    button.text        = 'Install'
+    button.action = lambda: install(app)
+    button.color       = (70, 152, 240)
+    button.hover_color = (75, 162, 250)
 
 
 def open_store_page(app:Application):
@@ -278,6 +276,7 @@ def open_store_page(app:Application):
         title = store.name,
         on_quit = store.quit
     ).add(ui.root)
+    store.window = w
     store.windows.add(w)
 
     # Categories
@@ -346,22 +345,30 @@ def update_apps(apps:list):
 
     # Iterate over the apps and create a button for each one
     TILES_PER_ROW = round(w.width/150)
-    print(TILES_PER_ROW)
+    height = (w.height-30) // TILES_PER_ROW
     for i, app in enumerate(apps):
+        text = app['name']
+        tw = ui.pygame.font.SysFont(None,25).render(text,1,(255,255,255)).get_width()
+        if tw > round(w.width-140) // TILES_PER_ROW:
+            text = text.replace(' ','\n',1)
+
         ui.Button(
-            position=(10 + (i % TILES_PER_ROW) * (round(w.width-150) // TILES_PER_ROW), 10 + (i // TILES_PER_ROW) * 110),
-            width=round(w.width-170) // TILES_PER_ROW,
-            height=100,
-            text=app['name'],
-            size=25,
-            action=actions_tiles[i],
-            color=(60,60,60),
-            hover_color=(70,70,70)
+            position = (
+                (i % TILES_PER_ROW) * (round(w.width-120) // TILES_PER_ROW),
+                (i // TILES_PER_ROW) * (height+10)
+            ),
+            width  = round(w.width-140) // TILES_PER_ROW,
+            height = height,
+            text   = text,
+            size   = 25,
+            action = actions_tiles[i],
+            color  = (60,60,60),
+            hover_color = (70,70,70)
         ).add(app_frame,1)
 
 
 
-store_app = Application('store','Fr-store',3,open_store_page,ui.nothing,'assets/store/store_icon.png').pin()
+store_app = Application('store','Fr-store',4,open_store_page,ui.nothing,'assets/store/store_icon.png').pin()
 
 
 
