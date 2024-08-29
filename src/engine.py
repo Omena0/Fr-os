@@ -19,7 +19,17 @@ root   = None
 focus  = None
 
 # Used events
-usedEvents = [pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP,pygame.KEYDOWN,pygame.KEYUP,pygame.MOUSEMOTION,pygame.QUIT,pygame.VIDEORESIZE,pygame.WINDOWMAXIMIZED]
+usedEvents = [
+    pygame.MOUSEBUTTONDOWN,
+    pygame.MOUSEBUTTONUP,
+    pygame.MOUSEWHEEL,
+    pygame.KEYDOWN,
+    pygame.KEYUP,
+    pygame.MOUSEMOTION,
+    pygame.QUIT,
+    pygame.VIDEORESIZE,
+    pygame.WINDOWMAXIMIZED,
+]
 
 # Mouse pos
 x = 0
@@ -120,7 +130,7 @@ class Button(Component):
             center = True
         ):
         self.parent = None
-        
+
         # Style
         self.text = text
         self.size = size
@@ -209,7 +219,7 @@ class Button(Component):
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
             event.handled = True
             try:
-                try: self.action(self)
+                try: self.action(button=self)
                 except TypeError:
                     self.action()
             except Exception as e:
@@ -339,6 +349,9 @@ class Textbox(Component):
         self.parent = None
         self.action = action
         
+        self.offset_x = 0
+        self.offset_y = 0
+
         # Style
         self.color = color
         self.focusColor = focus_color
@@ -421,9 +434,17 @@ class Textbox(Component):
             i = 0
             for segment in a.split('\n'):
                 text = font.render(segment, True, self.fontColor)
-                blits.append((text, (3+self.abs_x, 2+self.abs_y+(self.size)*i)))
+                x = 3+self.abs_x               + round(self.offset_x)
+                y = 2+self.abs_y+(self.size)*i + round(self.offset_y)
+
                 i += 0.5 if segment.strip() == '' else 1
-                
+
+                if (x in range(self.parent.abs_x,self.parent.abs_x+self.parent.width)
+                    and y in range(self.parent.abs_y,self.parent.abs_y+self.parent.height)
+                    and y+text.get_height() in range(self.parent.abs_y,self.parent.abs_y+self.parent.height)
+                ): 
+                    blits.append((text, (x,y)))
+
             root.disp.blits(blits)
 
         self.changed = False
@@ -470,7 +491,7 @@ class Textbox(Component):
         global focus
         if self.inactive: return
 
-        if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
+        if event.type in {pygame.MOUSEBUTTONDOWN,pygame.MOUSEWHEEL} and self.hovered:
             focus = self
             event.handled = True
 
@@ -485,6 +506,8 @@ class Textbox(Component):
                 else:
                     self.text = self.text[:-1]
             else:
+                if not self.text:
+                    self.text = ''
                 self.text += event.unicode.replace('\r','\n')
                 self.pressed = event.unicode
 
@@ -496,6 +519,19 @@ class Textbox(Component):
             self.pressed = ''
             self.repeating = False
             self.repeat_timer = 0
+        
+        elif event.type == pygame.MOUSEWHEEL and focus == self:
+            event.handled = True
+            Thread(target=self.scroll,args=[event.dict['precise_y']]).start()
+
+            self.changed = True
+
+    def scroll(self,y):
+        for i in Easer(10,get_easing('sin')):
+            try: i = next(i)+0.0001
+            except StopIteration: break
+            self.offset_y += y*self.size*i
+            t.sleep(1/120)
 
 class Image(Component):
     def __init__(
