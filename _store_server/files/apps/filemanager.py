@@ -43,7 +43,7 @@ def update_dir(app,d:str):
             y = i*22
 
             def action(button):
-                global dir
+                global dir, apps
                 item = button.text
 
                 dir = dir.removesuffix('/')
@@ -52,19 +52,31 @@ def update_dir(app,d:str):
                 if item == '..':
                     if dir == '': return
                     ndir = f'/{dir.removesuffix('/').rsplit('/',1)[0]}'
-                    if not ndir.endswith('/'):
-                        ndir = f'{ndir}/'
+                    ndir = f'/{ndir.replace('/','')}/'
 
                 elif not dir:
                     ndir = f'/{item}/'
+                    ndir = f'/{ndir.replace('/','')}/'
 
                 elif '.' in item:
                     ndir = f'/{dir}/{item}'
 
                 else:
                     ndir = f'/{dir}/{item}/'
+                    ndir = f'/{ndir.replace('/','')}/'
 
-                update_dir(app,ndir)
+                if not ndir.replace('/',''):
+                    ndir = '/'
+                
+                elif ndir.startswith('//'):
+                    ndir = ndir.removeprefix('/')
+
+                if not ndir.endswith('/'):
+                    for app in apps:
+                        if ndir.rsplit('.')[1] in app.meta.get('extensions',[]):
+                            app.launch(ndir)
+                else:
+                    update_dir(app,ndir)
 
             b = ui.Button(
                 position = (x,y),

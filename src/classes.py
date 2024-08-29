@@ -32,6 +32,8 @@ class Application:
         self.version = version
         self.onLaunch = onLaunch
         self.onQuit = onQuit
+
+        self.meta = {}
     
         self.window = None
         self.windows = set()
@@ -50,6 +52,12 @@ class Application:
         apps_dict[id] = self
         app_ids.add(self.id)
 
+    def add_meta(self,meta):
+        self.meta.update(meta)
+    
+    def remove_meta(self,key):
+        self.meta.remove(key)
+
     def pin(self,add_to_taskbar=True,add_to_start=True):
         if add_to_start: start_pinned.append(self)
         if add_to_taskbar:
@@ -58,7 +66,7 @@ class Application:
         update_taskbar()
         return self
     
-    def launch(self):
+    def launch(self,*args, **kwargs):
         if self.open:
             self.quit()
             return
@@ -66,7 +74,9 @@ class Application:
         if not self.pinned:
             taskbar_items.append(self)
         update_taskbar()
-        try: self.onLaunch(self)
+        try:
+            try: self.onLaunch(self, *args, **kwargs)
+            except TypeError: self.onLaunch(self)
         except Exception as e: print(e)
         return self
     
@@ -177,7 +187,6 @@ class FileSystem:
         result.extend(sorted(files))
 
         return result
-
 
     def __enter__(self):
         self.open(self.path)
