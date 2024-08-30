@@ -77,7 +77,9 @@ class Application:
         try:
             try: self.onLaunch(self, *args, **kwargs)
             except TypeError: self.onLaunch(self)
-        except Exception as e: print(e)
+        except Exception as e:
+            print(e)
+            if ui.debug: raise e
         return self
     
     def quit(self):

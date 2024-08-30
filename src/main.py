@@ -206,20 +206,21 @@ def unload(app_id):
     update_taskbar()
 
 def load_apps():
-    with fs:
-        for app in fs.listdir('/apps/'):
-            app_id = app.rsplit('.')[0]
+    for app in fs.listdir('/apps/'):
+        app_id = app.rsplit('.')[0]
 
-            if app_id in app_ids:
-                if app_id == 'appstore': continue
-                unload(app_id)
+        if app_id in app_ids:
+            if app_id == 'appstore': continue
+            unload(app_id)
 
-            src = fs.read(f'{APPS_DIR}/{app}')
-            globals().update(locals())
-            try: exec(src,globals(),globals())
-            except Exception as e:
-                print(f'[AppManager] App "{app_id}" failed to load! [{e}]')
-                raise e
+        with fs_open(f'{APPS_DIR}/{app}') as file:
+            src = file.read()
+
+        globals().update(locals())
+        try: exec(src,globals(),globals())
+        except Exception as e:
+            print(f'[AppManager] App "{app_id}" failed to load! [{e}]')
+            raise e
 
 
 load_apps()
