@@ -3,10 +3,10 @@ from types import FunctionType
 from easing import get_easing
 from threading import Thread
 from copy import copy
-import time as t
-import pygame
-import PIL.Image
 from io import BytesIO
+import time as t
+import PIL.Image
+import pygame
 
 pygame.init()
 
@@ -51,12 +51,20 @@ def nothing(*args, **kwargs):
 # Dummy parent class, might move some functions here.
 class Component:
     def getState(self):
-        self.attr = {}
+        state = {}
         for k in dir(self):
-            if k in {'pos','x','y','abs_x','abs_y','abs_pos','changed','action'}:
+            if k in {'pos','x','y','abs_x','abs_y','abs_pos','changed','action','children','state'}:
                 continue
 
-            self.attr[k] = getattr(self,k)
+            if k.startswith('__'): continue
+            
+            v = getattr(self,k)
+
+            if '<' in str(v): continue
+
+            state[k] = v
+
+        return hash(str(state))
 
 
 class Text(Component):
@@ -1635,8 +1643,9 @@ def update():  # sourcery skip: extract-method
     global frame, root, dt, running
     try:
         frame += 1
-        if frame % 3 == 0:
+        if frame % 1 == 0:
             root.tick(frame)
+
         root.render()
         for event in pygame.event.get(usedEvents):
             if event.type == pygame.QUIT:

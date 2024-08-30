@@ -234,8 +234,6 @@ def install(app):
     button.color       = (255,60,60)
     button.hover_color = (255,70,70)
 
-
-
 def update(app):
     global unload
     unload(app['id'])
@@ -245,6 +243,7 @@ def uninstall(app):
     global unload
 
     if app['id'] not in app_ids: return
+    if app['category'] == 'core': return
     
     print(f'Uninstalling {app["name"]}')
     unload(app['id'])
@@ -297,7 +296,6 @@ def open_store_page(app:Application):
     for category in categories:
         def press(category=category):
             global selected_category
-            print(category)
             selected_category = category
             if selected_category.lower() == 'all':
                 update_apps(store_all_apps)
@@ -340,7 +338,6 @@ def update_apps(apps:list):
         def press(app=app):
             global store, open_app_page
             open_app_page(store,app)
-            print(app)
         actions_tiles.append(press)
 
     # Iterate over the apps and create a button for each one
