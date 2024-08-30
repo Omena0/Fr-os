@@ -39,7 +39,15 @@ def nothing(*args, **kwargs):
 ### COMPONENTS ###
 
 # Dummy parent class, might move some functions here.
-class Component: ...
+class Component:
+    def getState(self):
+        self.attr = {}
+        for k in dir(self):
+            if k in {'pos','x','y','abs_x','abs_y','abs_pos','changed','action'}:
+                continue
+
+            self.attr[k] = getattr(self,k)
+
 
 class Text(Component):
     def __init__(
@@ -73,6 +81,9 @@ class Text(Component):
         self.layer = 0
         self.visible = True
 
+        self.state = self.getState()
+        self.cache = None
+
     def setPos(self, x, y):
         self.pos = x, y
         self.x = x
@@ -85,12 +96,25 @@ class Text(Component):
 
     def render(self):
         if not self.changed: return
+
         blits = []
-        font = pygame.font.SysFont(self.font, self.size)
+
+        if self.state == self.getState() and self.cache:
+            for i,text in enumerate(self.cache):
+                blits.append((text,(self.abs_x, self.abs_y+(self.size+3)*i)))
+            root.disp.blits(blits)
+            self.changed = False
+            return
+
+        self.state = self.getState()
+
         i = 0
+        self.cache = []
+        font = pygame.font.SysFont(self.font, self.size)
         for segment in self.text.split('\n'):
             text = font.render(segment, True, self.color,self.bg_color)
             blits.append((text, (self.abs_x, self.abs_y+(self.size+3)*i)))
+            self.cache.append(text)
             i += 0.5 if segment.strip() == '' else 1
             
         root.disp.blits(blits)
@@ -147,6 +171,9 @@ class Button(Component):
         self.layer = 0
         self.visible = True
 
+        self.state = self.getState()
+        self.cache = None
+
     def setPos(self, x, y):
         self.pos = x, y
         self.x = x
@@ -167,6 +194,7 @@ class Button(Component):
 
     def render(self):
         if not self.changed: return
+
         color = self.hover_color if self.hovered else self.color
         pygame.draw.rect(
             root.disp,
@@ -175,7 +203,27 @@ class Button(Component):
             0,
             self.corner_radius
         )
+
         blits = []
+        if self.state == self.getState() and self.cache:
+            for i,text in enumerate(self.cache):
+                if self.center:
+                    x = self.abs_x + (self.width - text.get_width()) // 2
+                    y = self.abs_y + (self.height - text.get_height()*(self.text.count('\n')*1.6+1)) // 2
+                else:
+                    x = 5 + self.abs_x
+                    y = self.abs_y + (self.height - text.get_height()*(self.text.count('\n')*1.6+1)) // 2
+
+                blits.append((text,(x, y+(self.size+3)*i)))
+                self.changed = False
+
+            root.disp.blits(blits)
+            return
+
+
+        self.state = self.getState()
+        self.cache = []
+
         font = pygame.font.SysFont(self.font, self.size)
         i = 0
         for segment in self.text.split('\n'):
@@ -189,6 +237,7 @@ class Button(Component):
                 y = self.abs_y + (self.height - text.get_height()*(self.text.count('\n')*1.6+1)) // 2
 
             blits.append((text, (x, y+(self.size+3)*i)))
+            self.cache.append(text)
             i += 0.5 if segment.strip() == '' else 1
             
         root.disp.blits(blits)
@@ -860,7 +909,7 @@ class Area(Component):
 
     def render(self):
         if not self.changed: return
-        
+
         pygame.draw.rect(
             root.disp,
             self.color,
@@ -1103,6 +1152,9 @@ class Window(Component):
             corner_radius=5
         ).add(self,self.layer)
 
+        self.state = self.getState()
+        self.cache = None
+
     def quit(self):
         self.parent.children.remove(self)
         root.update_all()
@@ -1134,36 +1186,29 @@ class Window(Component):
         self.children = sorted(self.children,key=lambda x: x.layer)
 
     def render(self):  # sourcery skip: extract-method
-        if self.changed:
-            ## Title bar
-            color = self.bgFocusedColor if focus == self else self.bgColor
+        if not self.changed: return
 
-            # Rect
-            pygame.draw.rect(
-                root.disp,
-                (40,40,40),
-                (self.abs_x,self.abs_y-self.tb_height,self.width,self.tb_height),
-                border_top_left_radius=self.corner_radius,
-                border_top_right_radius=self.corner_radius
-            )
+        ## Title bar
+        color = self.bgFocusedColor if focus == self else self.bgColor
 
-            # Text
-            font:pygame.font.Font = pygame.font.SysFont(self.font,25)
-            t = font.render(self.title,1,(255,255,255))
-            root.disp.blit(
-                t,
-                (self.abs_x+10,self.abs_y+5-self.tb_height)
-            )
+        # Rect
+        pygame.draw.rect(
+            root.disp,
+            (40,40,40),
+            (self.abs_x,self.abs_y-self.tb_height,self.width,self.tb_height),
+            border_top_left_radius=self.corner_radius,
+            border_top_right_radius=self.corner_radius
+        )
 
-            ## Window background
-            # Rect
-            pygame.draw.rect(
-                root.disp,
-                color,
-                (self.abs_x,self.abs_y,self.width,self.height),
-                border_bottom_left_radius=self.corner_radius,
-                border_bottom_right_radius=self.corner_radius
-            )
+        ## Window background
+        # Rect
+        pygame.draw.rect(
+            root.disp,
+            color,
+            (self.abs_x,self.abs_y,self.width,self.height),
+            border_bottom_left_radius=self.corner_radius,
+            border_bottom_right_radius=self.corner_radius
+        )
         
         # Dragging rectangle
         if self.dragging and not drag_high_quality:
@@ -1173,6 +1218,21 @@ class Window(Component):
                 (x-self.dragPoint[0],y-self.dragPoint[1]-self.tb_height,self.width,self.height+self.tb_height),
                 2,
                 self.corner_radius
+            )
+        
+        if self.state == self.getState() and self.cache:
+            root.disp.blit(self.cache,(self.abs_x+10,self.abs_y+5-self.tb_height))
+
+        else:
+            # Text
+
+            font:pygame.font.Font = pygame.font.SysFont(self.font,25)
+            text = font.render(self.title,1,(255,255,255))
+            self.cache = text
+
+            root.disp.blit(
+                text,
+                (self.abs_x+10,self.abs_y+5-self.tb_height)
             )
         
         for child in self.children:
@@ -1539,7 +1599,7 @@ def update():  # sourcery skip: extract-method
     global frame, root, dt, running
     try:
         frame += 1
-        if frame % 2 == 0:
+        if frame % 3 == 0:
             root.tick(frame)
         root.render()
         for event in pygame.event.get(usedEvents):
