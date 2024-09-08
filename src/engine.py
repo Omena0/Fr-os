@@ -64,6 +64,7 @@ class Component:
 
             state[k] = v
 
+        if not enable_caching: return
         return hash(str(state))
 
 
@@ -584,10 +585,11 @@ class Textbox(Component):
             self.changed = True
 
     def scroll(self,y):
-        for i in Easer(10,get_easing('sin')):
+        length = 15
+        for i in Easer(length,get_easing('quad')):
             try: i = next(i)+0.0001
             except StopIteration: break
-            self.offset_y += y*self.size*i
+            self.offset_y += y * i * self.size / length * 3
             t.sleep(1/120)
 
 class Image(Component):
@@ -1809,6 +1811,9 @@ debug_events = False
 
 # Whether to move the entire window or just draw a rectangle when dragging a window
 drag_high_quality = True
+
+# Whether to enable caching
+enable_caching = True
 
 def mainloop():
     global running

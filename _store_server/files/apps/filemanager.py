@@ -52,6 +52,7 @@ def update_dir(app,d:str):
                         ndir = f'/{dir.strip('/')}/{item}'
 
                 if not ndir.endswith('/'):
+                    if not fs.exists(ndir): ...
                     for app_ in apps:
                         if ndir.rsplit('.')[1] in app_.meta.get('extensions',[]):
                             print(f'Launching {app_.name}')

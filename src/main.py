@@ -118,7 +118,7 @@ taskbar_icons = ui.Frame(
 START_ICON_WIDTH = 50
 START_ICON_HEIGHT = 50
 
-START_ICON_PADDING = 7
+START_ICON_PADDING = 8
 
 # Apps menu
 def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
@@ -127,25 +127,25 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
 
     w = ui.Window(
         position = (10,y_+round(size[1]//3*settings['scale'])+taskbar.height+10),
-        width = round(size[0]//4*settings['scale'])+3,
+        width = round(size[0]//4*settings['scale'])-7,
         height = round(size[1]//3*settings['scale']),
         title = app_.name,
         on_quit=app_.quit
     ).add(root,999)
     app_.window = w
-    
+
     i = -1
     for app in apps:
         if app == app_: continue
         i += 1
 
         x,y = 0,0
-        #    START WIDTH    /   TOTAL WIDTH INCLUDING PADDING
+        #   START WIDTH    /   TOTAL WIDTH INCLUDING PADDING
         x = i * (START_ICON_WIDTH + START_ICON_PADDING) + 1 # +1 to prevent division by zero
         
         # WRAP ARROUND X
-        while x > w.width:
-            x -= w.width
+        while x+START_ICON_WIDTH > w.width:
+            x = 0
             y += (START_ICON_HEIGHT + START_ICON_PADDING)
         
         # Add padding
@@ -154,7 +154,6 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
         
         # Round to int
         x,y = int(x), int(y)
-        
         
         # Icon
         if app.icon:
@@ -185,7 +184,7 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
         easing = 'exp',
         ease_in = False
     ).start()
-    
+
 
 apps_menu = Application('applications','Applications',1,open_apps_menu,ui.nothing,'assets/core/fr_os.png').pin()
 
