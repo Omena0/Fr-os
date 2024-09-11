@@ -1804,7 +1804,7 @@ class LayoutManager():
 
 
 # Raise any exception caught
-debug = True
+debug = False
 
 # Display event debug information
 debug_events = False

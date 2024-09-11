@@ -219,7 +219,4 @@ class fs_open:
     def __exit__(self, exc_type, exc_val, exc_tb):
         fs.close()
 
-with fs:
-    print(fs.listdir('/apps/'))
-
 size =  screeninfo.get_monitors()[0].width, screeninfo.get_monitors()[0].height

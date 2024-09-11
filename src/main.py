@@ -134,6 +134,8 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
     ).add(root,999)
     app_.window = w
 
+    tile_width = w.width // (START_ICON_WIDTH + START_ICON_PADDING)
+
     i = -1
     for app in apps:
         if app == app_: continue
@@ -141,12 +143,8 @@ def open_apps_menu(app_):  # sourcery skip: remove-unnecessary-cast
 
         x,y = 0,0
         #   START WIDTH    /   TOTAL WIDTH INCLUDING PADDING
-        x = i * (START_ICON_WIDTH + START_ICON_PADDING) + 1 # +1 to prevent division by zero
-        
-        # WRAP ARROUND X
-        while x+START_ICON_WIDTH > w.width:
-            x = 0
-            y += (START_ICON_HEIGHT + START_ICON_PADDING)
+        x = i %  tile_width * (START_ICON_WIDTH + START_ICON_PADDING)
+        y = i // tile_width * (START_ICON_HEIGHT + START_ICON_PADDING)
         
         # Add padding
         x += 5
@@ -219,7 +217,7 @@ def load_apps():
         try: exec(src,globals(),globals())
         except Exception as e:
             print(f'[AppManager] App "{app_id}" failed to load! [{e}]')
-            raise e
+            if ui.debug: raise e
 
 
 load_apps()

@@ -2,7 +2,16 @@ from classes import Application, size
 import engine as ui
 
 def open_app(app, *args, **kwargs):
-    global fs_open, w
+    global fs_open, w, file
+
+    if len(args) == 1:
+        file = args[0]
+
+        with fs_open(file) as f:
+            text = f.read().decode(errors='ignore').replace('\x00','').replace('\r','')
+
+    else:
+        text = ''
 
     x = size[0] // 2 - size[0]//3
     y = size[1] // 2 - size[1]//3
@@ -10,19 +19,15 @@ def open_app(app, *args, **kwargs):
         position = (x,y),
         width=400,
         height=300,
-        title=app.name
+        title=f'{app.name} - {file}'
     ).add(ui.root)
     app.window = w
     app.windows.add(w)
 
-    if len(args) == 1:
-        file = args[0]
-
-        with fs_open(file) as file:
-            text = file.read().decode(errors='ignore').replace('\x00','').replace('\r','')
-
-    else:
-        text = ''
+    def save(text):
+        global app, file
+        with fs_open(file) as f:
+            f.write(text)
 
     app.text = ui.Textbox(
         position = (0,0),
@@ -33,9 +38,10 @@ def open_app(app, *args, **kwargs):
         focus_color = (70,70,70),
         hover_color = (70,70,70),
         text = text,
-        corner_radius=0
+        corner_radius=0,
+        action = save
     ).add(w,1)
 
 
 app = Application('notepad','Notepad',1,open_app,ui.nothing,'')
-app.add_meta({'extensions': ['txt','py','png']})
+app.add_meta({'extensions': ['txt','py']})

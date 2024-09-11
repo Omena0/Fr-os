@@ -43,7 +43,7 @@ def update_dir(app,d:str):
                 if item == '..':
                     if dir == '': return
                     ndir = f'/{dir.removesuffix('/').rsplit('/',1)[0]}'
-                    ndir = f'/{ndir.replace('//','')}/'
+                    for i in range(5): ndir = f'/{ndir.replace('//','')}/'
 
                 else:
                     if dir == '/':
